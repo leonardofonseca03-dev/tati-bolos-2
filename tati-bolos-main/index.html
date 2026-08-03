@@ -105,6 +105,31 @@
             box-sizing: border-box;
             font-size: 0.9rem;
         }
+
+        /* ESTILO DO AVISO FLUTUANTE (TOAST) */
+        #toast-notificacao {
+            visibility: hidden;
+            min-width: 260px;
+            background-color: var(--chocolate);
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 12px 20px;
+            position: fixed;
+            z-index: 2000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s, bottom 0.3s;
+        }
+        #toast-notificacao.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 40px;
+        }
     </style>
 </head>
 <body>
@@ -113,7 +138,7 @@
         <div class="top-bar">
             <div>
                 <h2 style="font-size: 1.2rem; margin:0; color: var(--pink);">🍰 Tati Amor Doce</h2>
-                <span style="font-size: 0.70rem; color: #666;">R. São Geraldo - Centro, Bom Jesus dos Perdões - SP</span>
+                <span style="font-size: 0.70rem; color: #666;">R. São Geraldo - Centro, Bom Jesus dos Perdões</span>
             </div>
             <div id="btn-carrinho" onclick="abrirCarrinho()" style="font-size: 0.85rem; background: var(--light-pink); padding: 8px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                 🛒 Carrinho (<span id="contador-carrinho">0</span>)
@@ -133,10 +158,11 @@
 
     <main>
         <h2 class="section-title" id="titulo-categoria">Nosso Cardápio</h2>
-        
-        <div class="product-grid" id="grid-produtos">
-            </div>
+        <div class="product-grid" id="grid-produtos"></div>
     </main>
+
+    <!-- TOAST DE NOTIFICAÇÃO FLUTUANTE -->
+    <div id="toast-notificacao">🛒 Produto adicionado ao carrinho!</div>
 
     <div id="modal-carrinho" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end;">
         <div style="background: white; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; box-shadow: 0 -5px 25px rgba(0,0,0,0.2);">
@@ -155,13 +181,25 @@
                 <span>R$ <span id="valor-total">0.00</span></span>
             </div>
 
+            <div style="background: #fff8fa; border: 1px dashed var(--pink); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem;">
+                <label style="color: var(--pink); margin-bottom: 8px; display: block;">🎁 <strong>Seus Dados (Para Clube de Fidelidade!)</strong></label>
+                <input type="text" id="cart-nome" placeholder="Seu Nome Completo" style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="cart-cpf" placeholder="Seu CPF (Só números)" style="flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <input type="text" id="cart-whatsapp" placeholder="WhatsApp (com DDD)" style="flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
+                </div>
+            </div>
+
             <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #eee;">
                 <p style="margin: 0 0 8px 0; font-size: 0.85rem;">🕒 <strong>Horário:</strong> Terça a Dom • 13:00 às 20:00</p>
                 <label><strong>Tipo de Atendimento:</strong></label>
-                <select id="tipo-entrega" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
-                    <option value="Retirada na Loja">Retirada na Loja (R. São Geraldo - Bom Jesus dos Perdões)</option>
-                    <option value="Entrega (Delivery)">Entrega (Delivery)</option>
+                <select id="tipo-entrega" onchange="verificarEntrega()" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
+                    <option value="Retirada na Loja" data-taxa="0">Retirada na Loja (R. São Geraldo) - Grátis</option>
                 </select>
+                
+                <div id="campo-endereco" style="display: none; margin-top: 10px;">
+                    <input type="text" id="cart-endereco" placeholder="Endereço completo (Rua, Número, Bairro, Referência)" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
+                </div>
             </div>
 
             <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #eee;">
@@ -189,6 +227,15 @@
     <script>
         let carrinho = [];
 
+        function mostrarToast(mensagem) {
+            var toast = document.getElementById('toast-notificacao');
+            toast.innerText = mensagem;
+            toast.className = "show";
+            setTimeout(function(){ 
+                toast.className = toast.className.replace("show", ""); 
+            }, 2500);
+        }
+
         function carregarProdutos(filtro = 'todos') {
             const grid = document.getElementById('grid-produtos');
             const titulo = document.getElementById('titulo-categoria');
@@ -203,45 +250,42 @@
 
             if (filtro === 'encomenda') {
                 titulo.innerText = "🎂 Faça sua Encomenda Personalizada";
+                
+                let opcoesEnc = [];
+                try { opcoesEnc = JSON.parse(localStorage.getItem('tati_encomenda_opcoes')); } catch(e) {}
+                if (!opcoesEnc || opcoesEnc.length === 0) {
+                    opcoesEnc = [
+                        { id: 1, nome: "Bolo Pequeno (Aprox. 1kg)", preco: 60.00 },
+                        { id: 2, nome: "Bolo Médio (Aprox. 2kg)", preco: 110.00 },
+                        { id: 3, nome: "Bolo Grande (Aprox. 3kg)", preco: 160.00 },
+                        { id: 4, nome: "Caixa com 12 Doces Personalizados", preco: 45.00 }
+                    ];
+                    localStorage.setItem('tati_encomenda_opcoes', JSON.stringify(opcoesEnc));
+                }
+
+                let optionsHtml = '';
+                opcoesEnc.forEach(o => {
+                    optionsHtml += `<option value="${o.preco.toFixed(2)}" data-nome="${o.nome}">${o.nome} — R$ ${o.preco.toFixed(2)}</option>`;
+                });
+
                 grid.innerHTML = `
                     <div class="form-encomenda-box" style="width: 100%; box-sizing: border-box;">
                         <p style="margin-top:0; font-size: 0.9rem; color: #666;">Escolha a opção desejada, preencha os detalhes e envie sua encomenda!</p>
                         <form onsubmit="adicionarEncomendaCarrinho(event)">
-                            <div class="form-group">
-                                <label>Nome Completo:</label>
-                                <input type="text" id="enc-nome" required placeholder="Seu nome completo">
-                            </div>
-                            <div class="form-group">
-                                <label>Telefone / WhatsApp:</label>
-                                <input type="text" id="enc-tel" required placeholder="(11) 99999-9999">
-                            </div>
+                            <div class="form-group"><label>Nome Completo:</label><input type="text" id="enc-nome" required placeholder="Seu nome completo"></div>
+                            <div class="form-group"><label>Telefone / WhatsApp:</label><input type="text" id="enc-tel" required placeholder="(11) 99999-9999"></div>
                             <div style="display: flex; gap: 10px;">
-                                <div class="form-group" style="flex:1;">
-                                    <label>Data de Retirada:</label>
-                                    <input type="date" id="enc-data" required>
-                                </div>
-                                <div class="form-group" style="flex:1;">
-                                    <label>Horário de Retirada:</label>
-                                    <input type="time" id="enc-hora" required>
-                                </div>
+                                <div class="form-group" style="flex:1;"><label>Data de Retirada:</label><input type="date" id="enc-data" required></div>
+                                <div class="form-group" style="flex:1;"><label>Horário de Retirada:</label><input type="time" id="enc-hora" required></div>
                             </div>
                             <div class="form-group">
                                 <label>Opção e Valor Fixo:</label>
                                 <select id="enc-opcao" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-                                    <option value="60.00" data-nome="Bolo Pequeno (Aprox. 1kg)">Bolo Pequeno (Aprox. 1kg) — R$ 60,00</option>
-                                    <option value="110.00" data-nome="Bolo Médio (Aprox. 2kg)">Bolo Médio (Aprox. 2kg) — R$ 110,00</option>
-                                    <option value="160.00" data-nome="Bolo Grande (Aprox. 3kg)">Bolo Grande (Aprox. 3kg) — R$ 160,00</option>
-                                    <option value="45.00" data-nome="Caixa com 12 Doces Personalizados">Caixa com 12 Doces Personalizados — R$ 45,00</option>
+                                    ${optionsHtml}
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>Detalhes (Sabor, Tema, Cores):</label>
-                                <textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>Foto de Referência (Opcional):</label>
-                                <input type="file" id="enc-foto" accept="image/*">
-                            </div>
+                            <div class="form-group"><label>Detalhes (Sabor, Tema, Cores):</label><textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea></div>
+                            <div class="form-group"><label>Foto de Referência (Opcional):</label><input type="file" id="enc-foto" accept="image/*"></div>
                             <button type="submit" class="btn-primary">Adicionar Encomenda ao Carrinho 🛒</button>
                         </form>
                     </div>
@@ -251,14 +295,9 @@
 
             titulo.innerText = "Nosso Cardápio";
             let produtosFiltrados = [];
-
-            if (filtro === 'todos') {
-                produtosFiltrados = listaProdutos;
-            } else if (filtro === 'promocao') {
-                produtosFiltrados = listaProdutos.filter(p => p.promocao === true);
-            } else {
-                produtosFiltrados = listaProdutos.filter(p => p.category === filtro);
-            }
+            if (filtro === 'todos') { produtosFiltrados = listaProdutos; } 
+            else if (filtro === 'promocao') { produtosFiltrados = listaProdutos.filter(p => p.promocao === true); } 
+            else { produtosFiltrados = listaProdutos.filter(p => p.category === filtro); }
 
             if (produtosFiltrados.length === 0) {
                 grid.innerHTML = '<p style="color: #666; text-align: center; grid-column: 1/-1;">Nenhum produto encontrado nesta categoria no momento.</p>';
@@ -267,15 +306,9 @@
             
             produtosFiltrados.forEach(produto => {
                 const precoEfetivo = (produto.promocao && produto.preco_promo) ? produto.preco_promo : produto.price;
-
                 let precoHtml = '';
                 if (produto.promocao && produto.preco_promo) {
-                    precoHtml = `
-                        <div>
-                            <span style="text-decoration: line-through; color: #888; font-size: 0.8rem;">R$ ${produto.price.toFixed(2)}</span>
-                            <span style="color: var(--pink); font-weight: bold; font-size: 1rem; margin-left: 5px;">R$ ${produto.preco_promo.toFixed(2)}</span>
-                        </div>
-                    `;
+                    precoHtml = `<div><span style="text-decoration: line-through; color: #888; font-size: 0.8rem;">R$ ${produto.price.toFixed(2)}</span><span style="color: var(--pink); font-weight: bold; font-size: 1rem; margin-left: 5px;">R$ ${produto.preco_promo.toFixed(2)}</span></div>`;
                 } else {
                     precoHtml = `<div style="margin-top: 5px; font-weight: bold; color: var(--pink);">R$ ${produto.price.toFixed(2)}</div>`;
                 }
@@ -284,9 +317,7 @@
                     <div class="product-card" style="${produto.promocao ? 'border: 2px solid var(--pink); background: #fff8fa;' : ''}">
                         <img src="${produto.imagem}" alt="${produto.name}" style="width: 75px; height: 75px; object-fit: cover; border-radius: 8px; background: #eee;" onerror="this.src='https://placehold.co/75?text=Foto'">
                         <div style="flex: 1; margin-left: 15px;">
-                            <h3 style="margin: 0 0 5px 0; font-size: 1rem;">
-                                ${produto.name} ${produto.promocao ? '<span style="color: var(--pink); font-size: 0.75rem; background: #f8bbd0; padding: 2px 6px; border-radius: 4px;">🔥 PROMO</span>' : ''}
-                            </h3>
+                            <h3 style="margin: 0 0 5px 0; font-size: 1rem;">${produto.name} ${produto.promocao ? '<span style="color: var(--pink); font-size: 0.75rem; background: #f8bbd0; padding: 2px 6px; border-radius: 4px;">🔥 PROMO</span>' : ''}</h3>
                             <p style="margin: 0; font-size: 0.8rem; color: #666;">${produto.desc}</p>
                             ${precoHtml}
                         </div>
@@ -301,9 +332,7 @@
 
         function filtrarCategoria(catId, elemento) {
             document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            if (elemento) {
-                elemento.classList.add('active');
-            }
+            if (elemento) { elemento.classList.add('active'); }
             carregarProdutos(catId);
         }
 
@@ -311,78 +340,88 @@
             event.preventDefault();
             const fileInput = document.getElementById('enc-foto');
             const file = fileInput.files[0];
-
             const selectOpcao = document.getElementById('enc-opcao');
             const selectedOption = selectOpcao.options[selectOpcao.selectedIndex];
             const nomeOpcao = selectedOption.getAttribute('data-nome');
             const precoOpcao = parseFloat(selectOpcao.value);
 
+            document.getElementById('cart-nome').value = document.getElementById('enc-nome').value;
+            document.getElementById('cart-whatsapp').value = document.getElementById('enc-tel').value;
+
             const processarEncomenda = (fotoBase64 = '') => {
                 const dadosEncomenda = {
-                    tipo: "encomenda",
-                    nomeCliente: document.getElementById('enc-nome').value,
-                    telefone: document.getElementById('enc-tel').value,
-                    dataRetirada: document.getElementById('enc-data').value,
-                    horaRetirada: document.getElementById('enc-hora').value,
-                    opcaoEscolhida: nomeOpcao,
-                    descricao: document.getElementById('enc-desc').value,
-                    preco: precoOpcao,
-                    foto: fotoBase64,
+                    tipo: "encomenda", 
+                    nomeCliente: document.getElementById('enc-nome').value, 
+                    telefone: document.getElementById('enc-tel').value, 
+                    dataRetirada: document.getElementById('enc-data').value, 
+                    horaRetirada: document.getElementById('enc-hora').value, 
+                    opcaoEscolhida: nomeOpcao, 
+                    descricao: document.getElementById('enc-desc').value, 
+                    preco: precoOpcao, 
+                    foto: fotoBase64, 
                     quantidade: 1
                 };
-
-                carrinho.push({
-                    id: 'enc_' + Date.now(),
-                    name: `🎂 Encomenda: ${nomeOpcao}`,
-                    preco: precoOpcao,
-                    quantidade: 1,
-                    isEncomenda: true,
-                    detalhes: dadosEncomenda
-                });
-
-                alert('Encomenda adicionada ao carrinho com sucesso!');
-                abrirCarrinho();
+                carrinho.push({ id: 'enc_' + Date.now(), name: `🎂 Encomenda: ${nomeOpcao}`, preco: precoOpcao, quantidade: 1, isEncomenda: true, detalhes: dadosEncomenda });
+                
+                // DISPARA O TOAST DE SUCESSO
+                mostrarToast('🎂 Encomenda adicionada ao carrinho!');
             };
 
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    processarEncomenda(e.target.result);
-                };
+                reader.onload = function(e) { processarEncomenda(e.target.result); };
                 reader.readAsDataURL(file);
-            } else {
-                processarEncomenda('');
-            }
+            } else { processarEncomenda(''); }
         }
 
-        function abrirCarrinho() {
-            document.getElementById('modal-carrinho').style.display = 'flex';
-            atualizarCarrinhoUI();
-        }
-
-        function fecharCarrinho() {
-            document.getElementById('modal-carrinho').style.display = 'none';
-        }
+        function abrirCarrinho() { document.getElementById('modal-carrinho').style.display = 'flex'; atualizarCarrinhoUI(); }
+        function fecharCarrinho() { document.getElementById('modal-carrinho').style.display = 'none'; }
 
         function adicionarComQuantidade(id, nome, preco) {
             const inputQtd = document.getElementById(`qtd-${id}`);
             const quantidade = inputQtd ? parseInt(inputQtd.value) || 1 : 1;
-            
             const itemExistente = carrinho.find(item => item.id == id && !item.isEncomenda);
-            if (itemExistente) {
-                itemExistente.quantidade += quantidade;
-            } else {
-                carrinho.push({ id, name: nome, preco, quantidade, isEncomenda: false });
+            if (itemExistente) { itemExistente.quantidade += quantidade; } 
+            else { carrinho.push({ id, name: nome, preco, quantidade, isEncomenda: false }); }
+            
+            atualizarCarrinhoUI();
+            
+            // DISPARA O TOAST DE SUCESSO
+            mostrarToast(`🛒 ${quantidade}x ${nome} adicionado!`);
+        }
+
+        function carregarZonasCarrinho() {
+            let zonasFrete = [];
+            try { zonasFrete = JSON.parse(localStorage.getItem('tati_zonas_frete')); } catch(e) {}
+            if (!zonasFrete || zonasFrete.length === 0) {
+                zonasFrete = [
+                    { id: 1, nome: "Zona 1 (Centro, Vila Nova, Vila Operária)", taxa: 7.00 },
+                    { id: 2, nome: "Zona 2 (Bela Vista, Palmas, Hortênsias, Cid. Nova)", taxa: 10.00 },
+                    { id: 3, nome: "Zona 3 (Periferia, Estância Serra Negra)", taxa: 15.00 }
+                ];
+                localStorage.setItem('tati_zonas_frete', JSON.stringify(zonasFrete));
             }
+            const selectEntrega = document.getElementById('tipo-entrega');
+            if(selectEntrega) {
+                selectEntrega.innerHTML = '<option value="Retirada na Loja" data-taxa="0">Retirada na Loja (R. São Geraldo) - Grátis</option>';
+                zonasFrete.forEach(z => {
+                    selectEntrega.innerHTML += `<option value="Entrega: ${z.nome}" data-taxa="${z.taxa}">Entrega: ${z.nome} - R$ ${Number(z.taxa).toFixed(2)}</option>`;
+                });
+            }
+        }
+
+        function verificarEntrega() {
+            const selectEntrega = document.getElementById('tipo-entrega');
+            const campoEndereco = document.getElementById('campo-endereco');
+            if (selectEntrega.value.includes('Entrega')) { campoEndereco.style.display = 'block'; } 
+            else { campoEndereco.style.display = 'none'; }
             atualizarCarrinhoUI();
         }
 
         function verificarPix() {
             const pagamento = document.getElementById('forma-pagamento').value;
             const avisoPix = document.getElementById('aviso-pix');
-            if (avisoPix) {
-                avisoPix.style.display = (pagamento === 'Pix') ? 'block' : 'none';
-            }
+            if (avisoPix) avisoPix.style.display = (pagamento === 'Pix') ? 'block' : 'none';
         }
 
         function atualizarCarrinhoUI() {
@@ -406,94 +445,132 @@
             carrinho.forEach(item => {
                 let subtotal = item.preco * item.quantidade;
                 total += subtotal;
-                
                 let li = document.createElement('li');
                 li.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 0.9rem;";
-                li.innerHTML = `
-                    <span>${item.quantidade}x ${item.name}</span>
-                    <span>R$ ${subtotal.toFixed(2)} <button onclick="removerDoCarrinho('${item.id}')" style="background:none; border:none; cursor:pointer; color:red; font-weight:bold; margin-left:10px;">❌</button></span>
-                `;
+                li.innerHTML = `<span>${item.quantidade}x ${item.name}</span><span>R$ ${subtotal.toFixed(2)} <button onclick="removerDoCarrinho('${item.id}')" style="background:none; border:none; cursor:pointer; color:red; font-weight:bold; margin-left:10px;">❌</button></span>`;
                 listaCarrinho.appendChild(li);
             });
-            
+
+            const selectEntrega = document.getElementById('tipo-entrega');
+            let taxaEntrega = 0;
+            if (selectEntrega) {
+                const opcaoSelecionada = selectEntrega.options[selectEntrega.selectedIndex];
+                taxaEntrega = parseFloat(opcaoSelecionada.getAttribute('data-taxa')) || 0;
+            }
+
+            if (taxaEntrega > 0) {
+                let liTaxa = document.createElement('li');
+                liTaxa.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 8px; font-size: 0.9rem; color: #555;";
+                liTaxa.innerHTML = `<span>🛵 Taxa de Entrega</span><span>R$ ${taxaEntrega.toFixed(2)}</span>`;
+                listaCarrinho.appendChild(liTaxa);
+            }
+
+            total += taxaEntrega;
             if (valorTotalEl) valorTotalEl.innerText = total.toFixed(2);
         }
 
-        function removerDoCarrinho(id) {
-            carrinho = carrinho.filter(item => item.id != id);
-            atualizarCarrinhoUI();
-        }
+        function removerDoCarrinho(id) { carrinho = carrinho.filter(item => item.id != id); atualizarCarrinhoUI(); }
 
         function finalizarPedidoWhatsApp() {
-            if (carrinho.length === 0) {
-                alert('Seu carrinho está vazio!');
+            if (carrinho.length === 0) { alert('Seu carrinho está vazio!'); return; }
+
+            const cliNome = document.getElementById('cart-nome').value.trim();
+            const cliCpf = document.getElementById('cart-cpf').value.replace(/\D/g, '');
+            const cliZap = document.getElementById('cart-whatsapp').value.replace(/\D/g, '');
+
+            if (!cliNome || cliCpf.length !== 11 || cliZap.length < 10) {
+                alert('Por favor, preencha corretamente Nome, CPF e WhatsApp para o Clube de Fidelidade antes de finalizar o pedido!');
                 return;
             }
+
+            const selectEntrega = document.getElementById('tipo-entrega');
+            const opcaoSelecionada = selectEntrega.options[selectEntrega.selectedIndex];
+            const nomeEntrega = selectEntrega.value;
+            const taxaEntrega = parseFloat(opcaoSelecionada.getAttribute('data-taxa')) || 0;
+            const enderecoCliente = document.getElementById('cart-endereco').value.trim();
+
+            if (nomeEntrega.includes('Entrega') && !enderecoCliente) {
+                alert('Por favor, informe seu endereço completo para podermos realizar a entrega!');
+                return;
+            }
+
+            let clientesTati = JSON.parse(localStorage.getItem('tati_clientes')) || [];
+            let clienteExistente = clientesTati.find(c => c.cpf === cliCpf);
             
-            const tipoEntrega = document.getElementById('tipo-entrega').value;
+            if (clienteExistente) {
+                clienteExistente.pedidos = (parseInt(clienteExistente.pedidos) || 0) + 1;
+                clienteExistente.nome = cliNome;
+                clienteExistente.whatsapp = cliZap;
+                if (nomeEntrega.includes('Entrega')) clienteExistente.endereco = enderecoCliente;
+            } else {
+                clientesTati.push({
+                    id: 'cli_' + Date.now(), nome: cliNome, cpf: cliCpf, whatsapp: cliZap, pedidos: 1, endereco: nomeEntrega.includes('Entrega') ? enderecoCliente : 'Não informado', observacoes: 'Cadastrado via Cardápio Digital'
+                });
+            }
+            clientesTati.sort((a, b) => b.pedidos - a.pedidos);
+            localStorage.setItem('tati_clientes', JSON.stringify(clientesTati));
+            
             const formaPagamento = document.getElementById('forma-pagamento').value;
-            
-            let mensagem = "Olá! Gostaria de fazer o seguinte pedido:%0A%0A";
-            let totalGeral = 0;
+            let mensagem = `Olá! Sou *${cliNome}* e gostaria de fazer o seguinte pedido:%0A%0A`;
+            let subtotalProdutos = 0;
             
             carrinho.forEach(item => {
                 let sub = item.preco * item.quantidade;
-                totalGeral += sub;
+                subtotalProdutos += sub;
                 
                 if (item.isEncomenda && item.detalhes) {
                     let d = item.detalhes;
-                    mensagem += `🎂 *ENCOMENDA PERSONALIZADA*%0A`;
-                    mensagem += `• *Opção:* ${d.opcaoEscolhida}%0A`;
-                    mensagem += `• *Nome:* ${d.nomeCliente}%0A`;
-                    mensagem += `• *Telefone:* ${d.telefone}%0A`;
-                    mensagem += `• *Data de Retirada:* ${d.dataRetirada}%0A`;
-                    mensagem += `• *Horário:* ${d.horaRetirada}%0A`;
-                    mensagem += `• *Detalhes (Sabor/Tema):* ${d.descricao}%0A`;
-                    mensagem += `• *Valor:* R$ ${sub.toFixed(2)}%0A%0A`;
-                } else {
-                    mensagem += `- ${item.quantidade}x ${item.name} (R$ ${sub.toFixed(2)})%0A`;
-                }
-                
-                if (item.isEncomenda && item.detalhes) {
+                    let tipoEncFinal = taxaEntrega > 0 ? ('Entrega: ' + opcaoSelecionada.text.split(' - ')[0].replace('Entrega: ', '')) : 'Retirada na Loja';
+                    let zonaEncFinal = taxaEntrega > 0 ? opcaoSelecionada.text.split(' - ')[0] : 'N/A';
+
+                    mensagem += `🎂 *ENCOMENDA PERSONALIZADA*%0A• *Opção:* ${d.opcaoEscolhida}%0A• *Retirada:* ${d.dataRetirada} às ${d.horaRetirada}%0A• *Detalhes:* ${d.descricao}%0A• *Atendimento:* ${tipoEncFinal}%0A• *Valor:* R$ ${sub.toFixed(2)}%0A%0A`;
+                    
                     let listaEncomendas = JSON.parse(localStorage.getItem('tati_encomendas')) || [];
-                    let novaEnc = {
-                        id: Date.now(),
-                        ...item.detalhes,
-                        formaPagamento: formaPagamento,
-                        statusPagamento: formaPagamento === 'Pix' ? 'Pago (Pix)' : 'A Pagar',
-                        total: sub,
-                        dataPedido: new Date().toLocaleString()
+                    let novaEnc = { 
+                        id: Date.now(), 
+                        ...item.detalhes, 
+                        nomeCliente: cliNome, 
+                        telefone: cliZap, 
+                        formaPagamento: formaPagamento, 
+                        statusPagamento: formaPagamento === 'Pix' ? 'Pago (Pix)' : 'A Pagar', 
+                        total: sub + taxaEntrega, 
+                        taxaEntrega: taxaEntrega,
+                        tipoEntrega: tipoEncFinal,
+                        zona: zonaEncFinal,
+                        endereco: enderecoCliente,
+                        dataPedido: new Date().toLocaleString() 
                     };
                     listaEncomendas.push(novaEnc);
                     localStorage.setItem('tati_encomendas', JSON.stringify(listaEncomendas));
+                } else {
+                    mensagem += `- ${item.quantidade}x ${item.name} (R$ ${sub.toFixed(2)})%0A`;
                 }
             });
 
-            // SALVA A VENDA NO HISTÓRICO DO RELATÓRIO DO ADM (ABA CARDÁPIO)
+            let totalGeral = subtotalProdutos + taxaEntrega;
+            let tipoAdminFiltro = taxaEntrega > 0 ? 'Entrega (Delivery)' : 'Retirada na Loja';
+            let nomeZonaCard = opcaoSelecionada.text.split(' - ')[0]; 
+
             let vendasCardapio = JSON.parse(localStorage.getItem('tati_vendas_cardapio')) || [];
-            let novaVendaCardapio = {
-                id: Date.now(),
-                data: new Date().toLocaleString(),
-                cliente: "Pedido via Cardápio Online",
-                itens: carrinho.map(item => ({ name: item.name, quantidade: item.quantidade, preco: item.preco })),
-                total: totalGeral,
-                tipoEntrega: tipoEntrega,
-                formaPagamento: formaPagamento
-            };
-            vendasCardapio.push(novaVendaCardapio);
+            vendasCardapio.push({
+                id: Date.now(), data: new Date().toLocaleString(), cliente: cliNome + ' (CPF: ' + cliCpf + ')', itens: carrinho.map(item => ({ name: item.name, quantidade: item.quantidade, preco: item.preco })), taxaEntrega: taxaEntrega, total: totalGeral, tipoEntrega: tipoAdminFiltro, formaPagamento: formaPagamento, status: 'pendente', endereco: enderecoCliente, zona: nomeZonaCard
+            });
             localStorage.setItem('tati_vendas_cardapio', JSON.stringify(vendasCardapio));
             
             mensagem += `----------------------------%0A`;
-            mensagem += `*Tipo de Atendimento:* ${tipoEntrega}%0A`;
-            mensagem += `*Forma de Pagamento:* ${formaPagamento}`;
-            if (formaPagamento === 'Pix') {
-                mensagem += ` (Comprovante em anexo)`;
+            if (taxaEntrega > 0) {
+                mensagem += `🛵 *Taxa de Entrega:* R$ ${taxaEntrega.toFixed(2)}%0A`;
+                mensagem += `📍 *Endereço:* ${enderecoCliente}%0A`;
+                mensagem += `🗺️ *Zona:* ${nomeZonaCard}%0A`;
+            } else {
+                mensagem += `*Tipo de Atendimento:* Retirada na Loja%0A`;
             }
+            mensagem += `*Forma de Pagamento:* ${formaPagamento}`;
+            if (formaPagamento === 'Pix') mensagem += ` (Comprovante em anexo)`;
             mensagem += `%0A%0A*Total Geral: R$ ${totalGeral.toFixed(2)}*`;
             
             const numeroWhatsApp = "5511943692682"; 
-            const url = `https://wa.me/${numeroWhatsApp}?text=${mensagem}`;
-            window.open(url, '_blank');
+            window.open(`https://wa.me/${numeroWhatsApp}?text=${mensagem}`, '_blank');
             
             carrinho = [];
             atualizarCarrinhoUI();
@@ -502,6 +579,7 @@
         
         window.onload = function() {
             carregarProdutos();
+            carregarZonasCarrinho();
             verificarPix();
         };
     </script>
