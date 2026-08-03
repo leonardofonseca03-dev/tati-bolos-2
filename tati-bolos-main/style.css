@@ -1,0 +1,135 @@
+:root {
+    --pink: #d42485;
+    --pink-dark: #b01b6d;
+    --chocolate: #3b2219;
+    --cream: #fff5f8;
+    --white: #ffffff;
+    --gray-light: #f4f4f4;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--cream);
+    color: var(--chocolate);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background-color: var(--white);
+    border-bottom: 3px solid var(--pink);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    color: var(--pink);
+    font-size: 1.5rem;
+}
+
+header span {
+    font-size: 0.9rem;
+    color: var(--chocolate);
+    font-weight: 600;
+}
+
+.nav-tabs {
+    display: flex;
+    background-color: var(--chocolate);
+    padding: 10px 20px;
+    gap: 15px;
+}
+
+.nav-tabs button {
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 5px 12px;
+    border-radius: 4px;
+    transition: 0.3s;
+}
+
+.nav-tabs button:hover, .nav-tabs button.active {
+    background-color: var(--pink);
+}
+
+main {
+    flex: 1;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.section-title {
+    font-size: 1.4rem;
+    color: var(--chocolate);
+    margin-bottom: 15px;
+    border-left: 5px solid var(--pink);
+    padding-left: 10px;
+}
+
+/* Grid de Produtos / Vitrine */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.product-card {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(59, 34, 25, 0.08);
+    border: 1px solid #ffd1e3;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.product-card h3 {
+    color: var(--chocolate);
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+}
+
+.product-card p {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.product-card .price {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--pink);
+    margin-bottom: 10px;
+}
+
+.btn-primary {
+    background-color: var(--pink);
+    color: var(--white);
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: var(--pink-dark);
+}

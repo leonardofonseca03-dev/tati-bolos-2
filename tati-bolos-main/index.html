@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tati Amor Doce - Cardápio</title>
+    <style>
+        :root {
+            --pink: #d81b60;
+            --light-pink: #f8bbd0;
+            --chocolate: #4e342e;
+            --bg-color: #fff5f8;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--chocolate);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .category-chips {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            overflow-x: auto;
+        }
+        .chip {
+            background: white;
+            border: 1px solid var(--pink);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--pink);
+            white-space: nowrap;
+        }
+        .chip.active {
+            background: var(--pink);
+            color: white;
+        }
+        main {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section-title {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--pink);
+            padding-left: 10px;
+        }
+        .product-grid {
+            display: grid;
+            gap: 15px;
+        }
+        .product-card, .form-encomenda-box {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+        }
+        .form-encomenda-box {
+            display: block;
+        }
+        .btn-primary {
+            background-color: var(--pink);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="top-bar">
+            <div>
+                <h2 style="font-size: 1.2rem; margin:0; color: var(--pink);">🍰 Tati Amor Doce</h2>
+                <span style="font-size: 0.70rem; color: #666;">R. São Geraldo - Centro, Bom Jesus dos Perdões - SP</span>
+            </div>
+            <div id="btn-carrinho" onclick="abrirCarrinho()" style="font-size: 0.85rem; background: var(--light-pink); padding: 8px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                🛒 Carrinho (<span id="contador-carrinho">0</span>)
+            </div>
+        </div>
+    </header>
+
+    <div class="category-chips" id="chips-container">
+        <div class="chip active" onclick="filtrarCategoria('todos', this)">Todos</div>
+        <div class="chip" onclick="filtrarCategoria('promocao', this)">🔥 Promoções</div>
+        <div class="chip" onclick="filtrarCategoria('salgados', this)">🥐 Salgados</div>
+        <div class="chip" onclick="filtrarCategoria('cafeteria', this)">☕ Cafeteria</div>
+        <div class="chip" onclick="filtrarCategoria('cookies', this)">🍪 Cookies</div>
+        <div class="chip" onclick="filtrarCategoria('bebidas', this)">🥤 Bebidas</div>
+        <div class="chip" onclick="filtrarCategoria('encomenda', this)" style="background: var(--light-pink); color: var(--chocolate);">🎂 Faça sua Encomenda</div>
+    </div>
+
+    <main>
+        <h2 class="section-title" id="titulo-categoria">Nosso Cardápio</h2>
+        
+        <div class="product-grid" id="grid-produtos">
+            </div>
+    </main>
+
+    <div id="modal-carrinho" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end;">
+        <div style="background: white; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; box-shadow: 0 -5px 25px rgba(0,0,0,0.2);">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: var(--pink);">🛒 Seu Carrinho</h3>
+                <button onclick="fecharCarrinho()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+            </div>
+
+            <ul id="lista-carrinho" style="list-style: none; padding: 0; margin: 0 0 15px 0;">
+                <p style="color: #888; text-align: center;">O carrinho está vazio.</p>
+            </ul>
+
+            <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 15px; border-top: 1px solid #eee; padding-top: 10px; display: flex; justify-content: space-between;">
+                <span>Total:</span>
+                <span>R$ <span id="valor-total">0.00</span></span>
+            </div>
+
+            <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #eee;">
+                <p style="margin: 0 0 8px 0; font-size: 0.85rem;">🕒 <strong>Horário:</strong> Terça a Dom • 13:00 às 20:00</p>
+                <label><strong>Tipo de Atendimento:</strong></label>
+                <select id="tipo-entrega" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
+                    <option value="Retirada na Loja">Retirada na Loja (R. São Geraldo - Bom Jesus dos Perdões)</option>
+                    <option value="Entrega (Delivery)">Entrega (Delivery)</option>
+                </select>
+            </div>
+
+            <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #eee;">
+                <label><strong>Forma de Pagamento:</strong></label>
+                <select id="forma-pagamento" onchange="verificarPix()" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
+                    <option value="Pix">Pix (Chave da Tati)</option>
+                    <option value="Cartão de Crédito">Cartão de Crédito (Maquininha)</option>
+                    <option value="Cartão de Débito">Cartão de Débito (Maquininha)</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                </select>
+                
+                <div id="aviso-pix" style="background: #e8f5e9; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.85rem; color: #2e7d32; border: 1px solid #c8e6c9;">
+                    🔑 <strong>Chave Pix da Tati:</strong> <span style="font-family: monospace; font-weight: bold;">[INSERIR_CHAVE_PIX_AQUI]</span><br>
+                    <em>Envie o comprovante junto com o pedido no WhatsApp!</em>
+                </div>
+            </div>
+
+            <button onclick="finalizarPedidoWhatsApp()" style="background-color: #25d366; color: white; border: none; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem;">
+                Enviar Pedido via WhatsApp 📱
+            </button>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let carrinho = [];
+
+        function carregarProdutos(filtro = 'todos') {
+            const grid = document.getElementById('grid-produtos');
+            const titulo = document.getElementById('titulo-categoria');
+            grid.innerHTML = '';
+            
+            let listaProdutos = [];
+            try {
+                listaProdutos = JSON.parse(localStorage.getItem('tati_products')) || (typeof CONFIG !== 'undefined' ? CONFIG.products : []);
+            } catch (e) {
+                listaProdutos = (typeof CONFIG !== 'undefined' ? CONFIG.products : []);
+            }
+
+            if (filtro === 'encomenda') {
+                titulo.innerText = "🎂 Faça sua Encomenda Personalizada";
+                grid.innerHTML = `
+                    <div class="form-encomenda-box" style="width: 100%; box-sizing: border-box;">
+                        <p style="margin-top:0; font-size: 0.9rem; color: #666;">Escolha a opção desejada, preencha os detalhes e envie sua encomenda!</p>
+                        <form onsubmit="adicionarEncomendaCarrinho(event)">
+                            <div class="form-group">
+                                <label>Nome Completo:</label>
+                                <input type="text" id="enc-nome" required placeholder="Seu nome completo">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone / WhatsApp:</label>
+                                <input type="text" id="enc-tel" required placeholder="(11) 99999-9999">
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <div class="form-group" style="flex:1;">
+                                    <label>Data de Retirada:</label>
+                                    <input type="date" id="enc-data" required>
+                                </div>
+                                <div class="form-group" style="flex:1;">
+                                    <label>Horário de Retirada:</label>
+                                    <input type="time" id="enc-hora" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Opção e Valor Fixo:</label>
+                                <select id="enc-opcao" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                                    <option value="60.00" data-nome="Bolo Pequeno (Aprox. 1kg)">Bolo Pequeno (Aprox. 1kg) — R$ 60,00</option>
+                                    <option value="110.00" data-nome="Bolo Médio (Aprox. 2kg)">Bolo Médio (Aprox. 2kg) — R$ 110,00</option>
+                                    <option value="160.00" data-nome="Bolo Grande (Aprox. 3kg)">Bolo Grande (Aprox. 3kg) — R$ 160,00</option>
+                                    <option value="45.00" data-nome="Caixa com 12 Doces Personalizados">Caixa com 12 Doces Personalizados — R$ 45,00</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Detalhes (Sabor, Tema, Cores):</label>
+                                <textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Foto de Referência (Opcional):</label>
+                                <input type="file" id="enc-foto" accept="image/*">
+                            </div>
+                            <button type="submit" class="btn-primary">Adicionar Encomenda ao Carrinho 🛒</button>
+                        </form>
+                    </div>
+                `;
+                return;
+            }
+
+            titulo.innerText = "Nosso Cardápio";
+            let produtosFiltrados = [];
+
+            if (filtro === 'todos') {
+                produtosFiltrados = listaProdutos;
+            } else if (filtro === 'promocao') {
+                produtosFiltrados = listaProdutos.filter(p => p.promocao === true);
+            } else {
+                produtosFiltrados = listaProdutos.filter(p => p.category === filtro);
+            }
+
+            if (produtosFiltrados.length === 0) {
+                grid.innerHTML = '<p style="color: #666; text-align: center; grid-column: 1/-1;">Nenhum produto encontrado nesta categoria no momento.</p>';
+                return;
+            }
+            
+            produtosFiltrados.forEach(produto => {
+                const precoEfetivo = (produto.promocao && produto.preco_promo) ? produto.preco_promo : produto.price;
+
+                let precoHtml = '';
+                if (produto.promocao && produto.preco_promo) {
+                    precoHtml = `
+                        <div>
+                            <span style="text-decoration: line-through; color: #888; font-size: 0.8rem;">R$ ${produto.price.toFixed(2)}</span>
+                            <span style="color: var(--pink); font-weight: bold; font-size: 1rem; margin-left: 5px;">R$ ${produto.preco_promo.toFixed(2)}</span>
+                        </div>
+                    `;
+                } else {
+                    precoHtml = `<div style="margin-top: 5px; font-weight: bold; color: var(--pink);">R$ ${produto.price.toFixed(2)}</div>`;
+                }
+
+                grid.innerHTML += `
+                    <div class="product-card" style="${produto.promocao ? 'border: 2px solid var(--pink); background: #fff8fa;' : ''}">
+                        <img src="${produto.imagem}" alt="${produto.name}" style="width: 75px; height: 75px; object-fit: cover; border-radius: 8px; background: #eee;" onerror="this.src='https://placehold.co/75?text=Foto'">
+                        <div style="flex: 1; margin-left: 15px;">
+                            <h3 style="margin: 0 0 5px 0; font-size: 1rem;">
+                                ${produto.name} ${produto.promocao ? '<span style="color: var(--pink); font-size: 0.75rem; background: #f8bbd0; padding: 2px 6px; border-radius: 4px;">🔥 PROMO</span>' : ''}
+                            </h3>
+                            <p style="margin: 0; font-size: 0.8rem; color: #666;">${produto.desc}</p>
+                            ${precoHtml}
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                            <input type="number" id="qtd-${produto.id}" value="1" min="1" style="width: 45px; text-align: center; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                            <button class="btn-primary" onclick="adicionarComQuantidade('${produto.id}', '${produto.name}', ${precoEfetivo})">Adicionar</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filtrarCategoria(catId, elemento) {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            if (elemento) {
+                elemento.classList.add('active');
+            }
+            carregarProdutos(catId);
+        }
+
+        function adicionarEncomendaCarrinho(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('enc-foto');
+            const file = fileInput.files[0];
+
+            const selectOpcao = document.getElementById('enc-opcao');
+            const selectedOption = selectOpcao.options[selectOpcao.selectedIndex];
+            const nomeOpcao = selectedOption.getAttribute('data-nome');
+            const precoOpcao = parseFloat(selectOpcao.value);
+
+            const processarEncomenda = (fotoBase64 = '') => {
+                const dadosEncomenda = {
+                    tipo: "encomenda",
+                    nomeCliente: document.getElementById('enc-nome').value,
+                    telefone: document.getElementById('enc-tel').value,
+                    dataRetirada: document.getElementById('enc-data').value,
+                    horaRetirada: document.getElementById('enc-hora').value,
+                    opcaoEscolhida: nomeOpcao,
+                    descricao: document.getElementById('enc-desc').value,
+                    preco: precoOpcao,
+                    foto: fotoBase64,
+                    quantidade: 1
+                };
+
+                carrinho.push({
+                    id: 'enc_' + Date.now(),
+                    name: `🎂 Encomenda: ${nomeOpcao}`,
+                    preco: precoOpcao,
+                    quantidade: 1,
+                    isEncomenda: true,
+                    detalhes: dadosEncomenda
+                });
+
+                alert('Encomenda adicionada ao carrinho com sucesso!');
+                abrirCarrinho();
+            };
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    processarEncomenda(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                processarEncomenda('');
+            }
+        }
+
+        function abrirCarrinho() {
+            document.getElementById('modal-carrinho').style.display = 'flex';
+            atualizarCarrinhoUI();
+        }
+
+        function fecharCarrinho() {
+            document.getElementById('modal-carrinho').style.display = 'none';
+        }
+
+        function adicionarComQuantidade(id, nome, preco) {
+            const inputQtd = document.getElementById(`qtd-${id}`);
+            const quantidade = inputQtd ? parseInt(inputQtd.value) || 1 : 1;
+            
+            const itemExistente = carrinho.find(item => item.id == id && !item.isEncomenda);
+            if (itemExistente) {
+                itemExistente.quantidade += quantidade;
+            } else {
+                carrinho.push({ id, name: nome, preco, quantidade, isEncomenda: false });
+            }
+            atualizarCarrinhoUI();
+        }
+
+        function verificarPix() {
+            const pagamento = document.getElementById('forma-pagamento').value;
+            const avisoPix = document.getElementById('aviso-pix');
+            if (avisoPix) {
+                avisoPix.style.display = (pagamento === 'Pix') ? 'block' : 'none';
+            }
+        }
+
+        function atualizarCarrinhoUI() {
+            const listaCarrinho = document.getElementById('lista-carrinho');
+            const valorTotalEl = document.getElementById('valor-total');
+            const contadorCarrinho = document.getElementById('contador-carrinho');
+            
+            let totalItens = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
+            if (contadorCarrinho) contadorCarrinho.innerText = totalItens;
+            
+            if (!listaCarrinho) return;
+            listaCarrinho.innerHTML = '';
+            let total = 0;
+            
+            if (carrinho.length === 0) {
+                listaCarrinho.innerHTML = '<p style="color: #888; text-align: center;">O carrinho está vazio.</p>';
+                if (valorTotalEl) valorTotalEl.innerText = '0.00';
+                return;
+            }
+            
+            carrinho.forEach(item => {
+                let subtotal = item.preco * item.quantidade;
+                total += subtotal;
+                
+                let li = document.createElement('li');
+                li.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 0.9rem;";
+                li.innerHTML = `
+                    <span>${item.quantidade}x ${item.name}</span>
+                    <span>R$ ${subtotal.toFixed(2)} <button onclick="removerDoCarrinho('${item.id}')" style="background:none; border:none; cursor:pointer; color:red; font-weight:bold; margin-left:10px;">❌</button></span>
+                `;
+                listaCarrinho.appendChild(li);
+            });
+            
+            if (valorTotalEl) valorTotalEl.innerText = total.toFixed(2);
+        }
+
+        function removerDoCarrinho(id) {
+            carrinho = carrinho.filter(item => item.id != id);
+            atualizarCarrinhoUI();
+        }
+
+        function finalizarPedidoWhatsApp() {
+            if (carrinho.length === 0) {
+                alert('Seu carrinho está vazio!');
+                return;
+            }
+            
+            const tipoEntrega = document.getElementById('tipo-entrega').value;
+            const formaPagamento = document.getElementById('forma-pagamento').value;
+            
+            let mensagem = "Olá! Gostaria de fazer o seguinte pedido:%0A%0A";
+            let totalGeral = 0;
+            
+            carrinho.forEach(item => {
+                let sub = item.preco * item.quantidade;
+                totalGeral += sub;
+                
+                if (item.isEncomenda && item.detalhes) {
+                    let d = item.detalhes;
+                    mensagem += `🎂 *ENCOMENDA PERSONALIZADA*%0A`;
+                    mensagem += `• *Opção:* ${d.opcaoEscolhida}%0A`;
+                    mensagem += `• *Nome:* ${d.nomeCliente}%0A`;
+                    mensagem += `• *Telefone:* ${d.telefone}%0A`;
+                    mensagem += `• *Data de Retirada:* ${d.dataRetirada}%0A`;
+                    mensagem += `• *Horário:* ${d.horaRetirada}%0A`;
+                    mensagem += `• *Detalhes (Sabor/Tema):* ${d.descricao}%0A`;
+                    mensagem += `• *Valor:* R$ ${sub.toFixed(2)}%0A%0A`;
+                } else {
+                    mensagem += `- ${item.quantidade}x ${item.name} (R$ ${sub.toFixed(2)})%0A`;
+                }
+                
+                if (item.isEncomenda && item.detalhes) {
+                    let listaEncomendas = JSON.parse(localStorage.getItem('tati_encomendas')) || [];
+                    let novaEnc = {
+                        id: Date.now(),
+                        ...item.detalhes,
+                        formaPagamento: formaPagamento,
+                        statusPagamento: formaPagamento === 'Pix' ? 'Pago (Pix)' : 'A Pagar',
+                        total: sub,
+                        dataPedido: new Date().toLocaleString()
+                    };
+                    listaEncomendas.push(novaEnc);
+                    localStorage.setItem('tati_encomendas', JSON.stringify(listaEncomendas));
+                }
+            });
+
+            // SALVA A VENDA NO HISTÓRICO DO RELATÓRIO DO ADM (ABA CARDÁPIO)
+            let vendasCardapio = JSON.parse(localStorage.getItem('tati_vendas_cardapio')) || [];
+            let novaVendaCardapio = {
+                id: Date.now(),
+                data: new Date().toLocaleString(),
+                cliente: "Pedido via Cardápio Online",
+                itens: carrinho.map(item => ({ name: item.name, quantidade: item.quantidade, preco: item.preco })),
+                total: totalGeral,
+                tipoEntrega: tipoEntrega,
+                formaPagamento: formaPagamento
+            };
+            vendasCardapio.push(novaVendaCardapio);
+            localStorage.setItem('tati_vendas_cardapio', JSON.stringify(vendasCardapio));
+            
+            mensagem += `----------------------------%0A`;
+            mensagem += `*Tipo de Atendimento:* ${tipoEntrega}%0A`;
+            mensagem += `*Forma de Pagamento:* ${formaPagamento}`;
+            if (formaPagamento === 'Pix') {
+                mensagem += ` (Comprovante em anexo)`;
+            }
+            mensagem += `%0A%0A*Total Geral: R$ ${totalGeral.toFixed(2)}*`;
+            
+            const numeroWhatsApp = "5511943692682"; 
+            const url = `https://wa.me/${numeroWhatsApp}?text=${mensagem}`;
+            window.open(url, '_blank');
+            
+            carrinho = [];
+            atualizarCarrinhoUI();
+            fecharCarrinho();
+        }
+        
+        window.onload = function() {
+            carregarProdutos();
+            verificarPix();
+        };
+    </script>
+</body>
+</html>

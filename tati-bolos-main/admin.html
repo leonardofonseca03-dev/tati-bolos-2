@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tati Amor Doce - Painel Admin</title>
+    <style>
+        :root {
+            --pink: #d81b60;
+            --light-pink: #f8bbd0;
+            --chocolate: #4e342e;
+            --bg-color: #fff5f8;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--chocolate);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        main {
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: white;
+            border: 1px solid var(--pink);
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--pink);
+        }
+        .tab-btn.active {
+            background: var(--pink);
+            color: white;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+        .btn-primary {
+            background-color: var(--pink);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 1rem;
+        }
+        .item-list {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fafafa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+        }
+
+        /* Sub-abas do Relatório */
+        .relatorio-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .rel-tab-btn {
+            background: #f1f1f1;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        .rel-tab-btn.active {
+            background: var(--pink);
+            color: white;
+        }
+
+        /* Estilo otimizado para Impressora Térmica / Recibo sem cortes */
+        #area-impressao {
+            display: none;
+        }
+        @media print {
+            @page {
+                margin: 0;
+                size: 80mm auto;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #area-impressao, #area-impressao * {
+                visibility: visible;
+            }
+            #area-impressao {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 78mm;
+                background: white;
+                padding: 5mm;
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 12px;
+                color: #000;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h2 style="font-size: 1.2rem; margin:0; color: var(--pink);">Painel Admin - Tati Amor Doce</h2>
+            <span style="font-size: 0.75rem; color: #666;">Gestão Completa da Confeitaria</span>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="abrirRelatorioVendas()" style="background: var(--pink); color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">📊 Relatório de Vendas</button>
+            <a href="index.html" target="_blank" style="background: var(--light-pink); color: var(--chocolate); padding: 8px 12px; border-radius: 20px; font-weight: bold; text-decoration: none; font-size: 0.85rem;">Ver Cardápio</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="mudarAba('produtos', this)">Produtos</button>
+            <button class="tab-btn" onclick="mudarAba('insumos', this)">Insumos</button>
+            <button class="tab-btn" onclick="mudarAba('encomendas', this)">Encomendas</button>
+            <button class="tab-btn" onclick="mudarAba('clientes', this)">Clientes 🎁</button>
+            <button class="tab-btn" onclick="mudarAba('pdv', this)">PDV e Mesas</button>
+        </div>
+
+        <div id="secao-produtos" class="secao-painel">
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--pink);">Cadastrar Novo Produto</h3>
+                <form id="form-produto" onsubmit="salvarProduto(event)">
+                    <div class="form-group">
+                        <label>Nome do Produto:</label>
+                        <input type="text" id="nome" required placeholder="Ex: Coxinha Suprema">
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição:</label>
+                        <input type="text" id="desc" required placeholder="Ex: Massa especial">
+                    </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>Preço Original (R$):</label>
+                            <input type="number" step="0.01" id="preco" required placeholder="18.90">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Categoria:</label>
+                            <select id="categoria">
+                                <option value="salgados">Salgados</option>
+                                <option value="cafeteria">Cafeteria</option>
+                                <option value="cookies">Cookies</option>
+                                <option value="bebidas">Bebidas</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto do Produto:</label>
+                        <input type="file" id="imagem-file" accept="image/*" required>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="promocao" onchange="toggleCampoPromo()" style="width: 20px; height: 20px;">
+                        <label for="promocao" style="margin: 0; cursor: pointer;">Colocar em Promoção</label>
+                    </div>
+                    <div class="form-group" id="grupo-preco-promo" style="display: none; background: #fff8fa; padding: 12px; border-radius: 6px; border: 1px dashed var(--pink);">
+                        <label style="color: var(--pink);">Valor Promocional (R$):</label>
+                        <input type="number" step="0.01" id="preco-promo" placeholder="Ex: 14.90" style="margin-bottom: 10px;">
+                    </div>
+                    <button type="submit" class="btn-primary">Salvar Produto</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--pink);">Produtos Cadastrados</h3>
+                <div id="lista-produtos-admin"></div>
+            </div>
+        </div>
+
+        <div id="secao-insumos" class="secao-painel" style="display: none;">
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--pink);">Cadastrar Novo Insumo</h3>
+                <form id="form-insumo" onsubmit="salvarInsumo(event)">
+                    <div class="form-group">
+                        <label>Nome do Insumo:</label>
+                        <input type="text" id="ins-nome" required placeholder="Ex: Farinha">
+                    </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>Unidade:</label>
+                            <select id="ins-unidade">
+                                <option value="kg">KG</option>
+                                <option value="grama">Grama</option>
+                                <option value="litro">Litro</option>
+                                <option value="unidade">Unidade</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Valor (R$):</label>
+                            <input type="number" step="0.01" id="ins-valor" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Fornecedor:</label>
+                        <input type="text" id="ins-fornecedor" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Salvar Insumo</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--pink);">Insumos Cadastrados</h3>
+                <div id="lista-insumos-admin"></div>
+            </div>
+        </div>
+
+        <div id="secao-encomendas" class="secao-painel" style="display: none;">
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--pink);">Encomendas Recebidas</h3>
+                <div id="lista-encomendas-admin"></div>
+            </div>
+        </div>
+
+        <!-- NOVA ABA: CLIENTES E MIMOS -->
+        <div id="secao-clientes" class="secao-painel" style="display: none;">
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--pink);">Cadastrar Novo Cliente</h3>
+                <p style="font-size: 0.85rem; color: #666; margin-top: -10px;">Registre seus clientes para acompanhar fidelidade e enviar mimos.</p>
+                <form id="form-cliente" onsubmit="salvarCliente(event)">
+                    <div class="form-group">
+                        <label>Nome do Cliente:</label>
+                        <input type="text" id="cli-nome" required placeholder="Ex: Letícia">
+                    </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>WhatsApp:</label>
+                            <input type="text" id="cli-whatsapp" required placeholder="(11) 99999-9999">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Total de Pedidos:</label>
+                            <input type="number" id="cli-pedidos" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Endereço / Bairro (Opcional):</label>
+                        <input type="text" id="cli-endereco" placeholder="Ex: Centro, Bom Jesus dos Perdões">
+                    </div>
+                    <div class="form-group">
+                        <label>Observações / Mimos (Gostos, brindes enviados, etc):</label>
+                        <textarea id="cli-obs" rows="2" placeholder="Ex: Adora bolo de pote de ninho. Ganhou mimo dia 15/08."></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Salvar Cliente 🎁</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--pink);">Carteira de Clientes</h3>
+                <div id="lista-clientes-admin"></div>
+            </div>
+        </div>
+
+        <div id="secao-pdv" class="secao-painel" style="display: none;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; color: var(--pink);">Controle de Mesas</h3>
+                    <div style="display: flex; gap: 15px; font-size: 0.85rem;">
+                        <span style="color:green; font-weight:bold;">[LIVRE]</span>
+                        <span style="color:var(--pink); font-weight:bold;">[OCUPADO]</span>
+                    </div>
+                </div>
+                <div id="grid-mesas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px;"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Área oculta para impressão limpa -->
+    <div id="area-impressao"></div>
+
+    <!-- MODAL RELATÓRIO DE VENDAS -->
+    <div id="modal-relatorio-vendas" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2300; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+        <div style="background: white; width: 100%; max-width: 650px; max-height: 90vh; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: var(--pink);">📊 Relatório de Vendas</h3>
+                <button onclick="fecharRelatorioVendas()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+
+            <!-- Sub-abas -->
+            <div class="relatorio-tabs">
+                <button class="rel-tab-btn active" onclick="mudarAbaRelatorio('mesas', this)">Vendas Mesa</button>
+                <button class="rel-tab-btn" onclick="mudarAbaRelatorio('cardapio', this)">Vendas Cardápio</button>
+                <button class="rel-tab-btn" onclick="mudarAbaRelatorio('encomendas', this)">Vendas Encomendas</button>
+            </div>
+
+            <!-- Conteúdo dinâmico do relatório -->
+            <div id="conteudo-relatorio" style="flex: 1; overflow-y: auto; max-height: 55vh; padding-right: 5px;">
+                <!-- Preenchido via JavaScript -->
+            </div>
+
+            <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <button onclick="limparHistoricoRelatorio()" style="background: #ffebee; color: #c62828; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">🗑️ Limpar Histórico Atual</button>
+                <div style="font-weight: bold; font-size: 1.05rem;">
+                    Total Filtrado: <span style="color: var(--pink);">R$ <span id="relatorio-total-geral">0.00</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modais do PDV e Recibo (Ocultos) -->
+    <div id="modal-zoom" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; cursor: pointer;" onclick="fecharZoom()">
+        <div style="position: relative; max-width: 90%; max-height: 90%;" onclick="event.stopPropagation()">
+            <span onclick="fecharZoom()" style="position: absolute; top: -40px; right: 0; color: white; font-size: 2rem; cursor: pointer; font-weight: bold;">X</span>
+            <img id="img-zoom-conteudo" src="" style="width: 100%; max-height: 85vh; object-fit: contain; border-radius: 8px;">
+        </div>
+    </div>
+
+    <div id="modal-mesa" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+        <div style="background: white; width: 100%; max-width: 500px; border-radius: 12px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 id="titulo-modal-mesa" style="margin: 0; color: var(--pink);">Mesa</h3>
+                <button onclick="fecharModalMesa()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">X</button>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.85rem; font-weight: bold;">Adicionar Produto:</label>
+                <div style="display: flex; gap: 8px; margin-top: 5px;">
+                    <select id="select-produto-mesa" style="flex: 1; padding: 8px; border-radius: 6px;"></select>
+                    <input type="number" id="qtd-produto-mesa" value="1" min="1" style="width: 50px; text-align: center; padding: 8px; border-radius: 6px;">
+                    <button onclick="adicionarItemMesa()" style="background: var(--pink); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">+</button>
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <ul id="lista-itens-mesa" style="list-style: none; padding: 0; margin: 0; max-height: 180px; overflow-y: auto; border: 1px solid #eee; padding: 8px; background: #fafafa;"></ul>
+            </div>
+            <div style="font-weight: bold; font-size: 1.05rem; margin-bottom: 15px; display: flex; justify-content: space-between; border-top: 1px solid #eee; padding-top: 10px;">
+                <span>Subtotal:</span>
+                <span style="color: var(--pink);">R$ <span id="total-valor-mesa">0.00</span></span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="abrirCaixaMesa()" style="flex: 1; background: #c2185b; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Caixa</button>
+                <button onclick="salvarEFecharMesa()" style="flex: 1; background: #2e7d32; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Voltar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-caixa" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2100; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+        <div style="background: white; width: 100%; max-width: 450px; border-radius: 12px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 id="titulo-modal-caixa" style="margin: 0; color: var(--pink);">Fechamento</h3>
+                <button onclick="fecharModalCaixa()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">X</button>
+            </div>
+            <div id="resumo-itens-caixa" style="max-height: 90px; overflow-y: auto; background: #fafafa; padding: 8px; font-size: 0.85rem; margin-bottom: 10px;"></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem;">
+                <span>Subtotal:</span><span>R$ <span id="caixa-subtotal">0.00</span></span>
+            </div>
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label style="font-size: 0.85rem;">Desconto (%):</label>
+                <input type="number" id="caixa-desconto" min="0" max="100" value="0" oninput="calcularTotalCaixa()" style="padding: 6px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; font-size: 1.15rem; border-top: 1px solid #eee; padding-top: 8px;">
+                <span>Total a Pagar:</span><span style="color: var(--pink);">R$ <span id="caixa-total-final">0.00</span></span>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="font-size: 0.85rem; font-weight: bold;">Pagamento:</label>
+                <select id="caixa-pagamento" onchange="mudarFormaPagamentoCaixa()" style="padding: 8px;">
+                    <option value="pix">Pix</option>
+                    <option value="debito">Débito</option>
+                    <option value="credito">Crédito</option>
+                    <option value="dinheiro">Dinheiro</option>
+                </select>
+            </div>
+            <div id="campos-dinheiro" style="display: none; background: #fff8fa; padding: 10px; margin-bottom: 15px;">
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label style="font-size: 0.8rem; color: var(--pink); font-weight: bold;">Recebido (R$):</label>
+                    <input type="number" id="caixa-valor-recebido" step="0.01" oninput="calcularTroco()" placeholder="0.00">
+                </div>
+                <div style="font-size: 0.95rem; font-weight: bold; display: flex; justify-content: space-between;">
+                    <span>Troco:</span><span style="color: #2e7d32;">R$ <span id="caixa-troco">0.00</span></span>
+                </div>
+            </div>
+            <button onclick="concluirPagamentoCaixa()" style="background: #2e7d32; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; font-size: 1rem;">Confirmar & Liberar Mesa</button>
+        </div>
+    </div>
+
+    <div id="modal-recibo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2200; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+        <div style="background: white; width: 100%; max-width: 400px; border-radius: 12px; padding: 20px; text-align: center;">
+            <div style="font-size: 1.8rem; margin-bottom: 5px; color: green; font-weight: bold;">✔ Pagamento Concluído!</div>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 0;">O que deseja fazer agora?</p>
+            
+            <div style="background: #f9f9f9; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: left; border: 1px solid #eee;">
+                <label style="font-size: 0.8rem; font-weight: bold; display: block; margin-bottom: 4px;">WhatsApp do Cliente (com DDD):</label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="input-zap-cliente" placeholder="Ex: 11999999999" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 0.9rem;">
+                    <button onclick="enviarComprovanteWhatsApp()" style="background: #25d366; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.85rem;">Enviar 📱</button>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button onclick="imprimirComprovantePDF()" style="background: #4e342e; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem;">🖨️ Imprimir Recibo</button>
+                <button onclick="fecharModalRecibo()" style="background: #eee; color: #333; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Concluir / Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Bancos de Dados via LocalStorage
+        var produtos = [];
+        try { produtos = JSON.parse(localStorage.getItem('tati_products')) || []; } catch(e) { produtos = []; }
+        var insumos = [];
+        try { insumos = JSON.parse(localStorage.getItem('tati_insumos')) || []; } catch(e) { insumos = []; }
+        var encomendas = [];
+        try { encomendas = JSON.parse(localStorage.getItem('tati_encomendas')) || []; } catch(e) { encomendas = []; }
+        var vendasMesas = [];
+        try { vendasMesas = JSON.parse(localStorage.getItem('tati_vendas_mesas')) || []; } catch(e) { vendasMesas = []; }
+        
+        // NOVO: Banco de Clientes
+        var clientesTati = [];
+        try { clientesTati = JSON.parse(localStorage.getItem('tati_clientes')) || []; } catch(e) { clientesTati = []; }
+
+        var mesaAtualId = null;
+        var ultimaVenda = null;
+        var abaRelatorioAtual = 'mesas';
+
+        var mesasState = null;
+        try { mesasState = JSON.parse(localStorage.getItem('tati_mesas')); } catch(e) { mesasState = null; }
+        if (!mesasState || typeof mesasState !== 'object') {
+            mesasState = {};
+            for(var i=1; i<=12; i++) {
+                mesasState['mesa_' + i] = { nome: 'Mesa ' + i, itens: [], status: 'livre' };
+            }
+            mesasState['balcao'] = { nome: 'Balcão / Viagem', itens: [], status: 'livre' };
+        }
+
+        window.mudarAba = function(aba, btn) {
+            var botoes = document.querySelectorAll('.tab-btn');
+            for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
+            
+            var secoes = document.querySelectorAll('.secao-painel');
+            for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
+
+            if (aba === 'produtos') {
+                document.getElementById('secao-produtos').style.display = 'block';
+                window.carregarProdutosAdmin();
+            } else if (aba === 'insumos') {
+                document.getElementById('secao-insumos').style.display = 'block';
+                window.carregarInsumosAdmin();
+            } else if (aba === 'encomendas') {
+                document.getElementById('secao-encomendas').style.display = 'block';
+                window.carregarEncomendasAdmin();
+            } else if (aba === 'clientes') {
+                document.getElementById('secao-clientes').style.display = 'block';
+                window.carregarClientesAdmin();
+            } else if (aba === 'pdv') {
+                document.getElementById('secao-pdv').style.display = 'block';
+                window.carregarPDV();
+            }
+
+            if (btn) btn.classList.add('active');
+        };
+
+        window.toggleCampoPromo = function() {
+            var isChecked = document.getElementById('promocao').checked;
+            document.getElementById('grupo-preco-promo').style.display = isChecked ? 'block' : 'none';
+        };
+
+        // FUNÇÕES DE PRODUTOS
+        window.carregarProdutosAdmin = function() {
+            var container = document.getElementById('lista-produtos-admin');
+            container.innerHTML = produtos.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum produto cadastrado.</p>' : '';
+            produtos.forEach(function(produto) {
+                var precoDisplay = 'R$ ' + Number(produto.price).toFixed(2);
+                if (produto.promocao && produto.preco_promo) {
+                    precoDisplay = '<span style="text-decoration: line-through; color: #888;">R$ ' + Number(produto.price).toFixed(2) + '</span> <strong style="color: var(--pink);">R$ ' + Number(produto.preco_promo).toFixed(2) + '</strong>';
+                }
+                var tagPromo = produto.promocao ? '<span style="color:red; font-size:0.8rem; font-weight:bold;">[PROMO]</span>' : '';
+                var html = '<div class="item-list">' +
+                    '<div style="display: flex; align-items: center; gap: 10px;">' +
+                        '<img src="' + produto.imagem + '" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; background: #eee;">' +
+                        '<div>' +
+                            '<strong>' + produto.name + '</strong> ' + tagPromo + '<br>' +
+                            '<span style="font-size: 0.8rem; color: #666;">' + precoDisplay + ' | <em>' + produto.category + '</em></span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<button onclick="excluirProduto(\'' + produto.id + '\')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>' +
+                '</div>';
+                container.innerHTML += html;
+            });
+        };
+
+        window.salvarProduto = function(event) {
+            event.preventDefault();
+            var fileInput = document.getElementById('imagem-file');
+            if (!fileInput.files || !fileInput.files[0]) return alert('Selecione uma foto!');
+            var file = fileInput.files[0];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var novoProduto = {
+                    id: 'prod_' + Date.now(),
+                    name: document.getElementById('nome').value,
+                    desc: document.getElementById('desc').value,
+                    price: parseFloat(document.getElementById('preco').value),
+                    category: document.getElementById('categoria').value,
+                    imagem: e.target.result,
+                    promocao: document.getElementById('promocao').checked,
+                    preco_promo: document.getElementById('promocao').checked ? parseFloat(document.getElementById('preco-promo').value) : null
+                };
+                produtos.push(novoProduto);
+                localStorage.setItem('tati_products', JSON.stringify(produtos));
+                document.getElementById('form-produto').reset();
+                document.getElementById('grupo-preco-promo').style.display = 'none';
+                window.carregarProdutosAdmin();
+                alert('Produto cadastrado com sucesso!');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.excluirProduto = function(id) {
+            if (confirm('Deseja excluir este produto?')) {
+                produtos = produtos.filter(function(p) { return p.id !== id; });
+                localStorage.setItem('tati_products', JSON.stringify(produtos));
+                window.carregarProdutosAdmin();
+            }
+        };
+
+        // FUNÇÕES DE INSUMOS
+        window.salvarInsumo = function(event) {
+            event.preventDefault();
+            var novoInsumo = {
+                id: Date.now(),
+                nome: document.getElementById('ins-nome').value,
+                unidade: document.getElementById('ins-unidade').value,
+                valor: parseFloat(document.getElementById('ins-valor').value),
+                fornecedor: document.getElementById('ins-fornecedor').value
+            };
+            insumos.push(novoInsumo);
+            localStorage.setItem('tati_insumos', JSON.stringify(insumos));
+            document.getElementById('form-insumo').reset();
+            window.carregarInsumosAdmin();
+            alert('Insumo cadastrado com sucesso!');
+        };
+
+        window.carregarInsumosAdmin = function() {
+            var container = document.getElementById('lista-insumos-admin');
+            container.innerHTML = insumos.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum insumo cadastrado.</p>' : '';
+            insumos.forEach(function(ins) {
+                container.innerHTML += '<div class="item-list">' +
+                    '<div><strong>' + ins.nome + '</strong><br><span style="font-size: 0.8rem; color: #666;">R$ ' + Number(ins.valor).toFixed(2) + ' por ' + ins.unidade + ' | Fornecedor: <em>' + ins.fornecedor + '</em></span></div>' +
+                    '<button onclick="excluirInsumo(' + ins.id + ')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>' +
+                '</div>';
+            });
+        };
+
+        window.excluirInsumo = function(id) {
+            insumos = insumos.filter(function(i) { return i.id !== id; });
+            localStorage.setItem('tati_insumos', JSON.stringify(insumos));
+            window.carregarInsumosAdmin();
+        };
+
+        // FUNÇÕES DE ENCOMENDAS
+        window.carregarEncomendasAdmin = function() {
+            var container = document.getElementById('lista-encomendas-admin');
+            container.innerHTML = encomendas.length === 0 ? '<p style="color: #666; text-align: center;">Nenhuma encomenda recebida.</p>' : '';
+            encomendas.forEach(function(enc, index) {
+                var fotoHtml = enc.foto ? '<img src="' + enc.foto + '" onclick="abrirZoom(\'' + enc.foto + '\')" style="width: 65px; height: 65px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc; margin-top: 5px; cursor: pointer;">' : '<span style="font-size:0.8rem; color:#888;">Sem foto de referência</span>';
+                container.innerHTML += '<div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;">' +
+                    '<div style="display: flex; justify-content: space-between;"><strong style="font-size: 1.05rem; color: var(--pink);">' + enc.nomeCliente + '</strong><span style="font-size: 0.8rem; color: #666;">' + enc.dataPedido + '</span></div>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tel:</strong> ' + enc.telefone + '</p>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Retirada:</strong> ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</p>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Opção:</strong> ' + enc.opcaoEscolhida + '</p>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Detalhes:</strong> ' + enc.descricao + '</p>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Valor:</strong> R$ ' + Number(enc.total).toFixed(2) + ' | <strong>Pagamento:</strong> ' + enc.statusPagamento + ' (' + enc.formaPagamento + ')</p>' +
+                    '<div style="margin-top: 8px;"><label style="font-size: 0.8rem; font-weight: bold;">Foto de Referência:</label><br>' + fotoHtml + '</div>' +
+                    '<div style="margin-top: 15px; text-align: right;"><button onclick="removerEncomenda(' + index + ')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Concluir / Remover</button></div>' +
+                '</div>';
+            });
+        };
+
+        window.abrirZoom = function(url) {
+            var modal = document.getElementById('modal-zoom');
+            var img = document.getElementById('img-zoom-conteudo');
+            if (modal && img) { img.src = url; modal.style.display = 'flex'; }
+        };
+
+        window.fecharZoom = function() {
+            var modal = document.getElementById('modal-zoom');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.removerEncomenda = function(index) {
+            if (confirm('Deseja remover esta encomenda da lista?')) {
+                encomendas.splice(index, 1);
+                localStorage.setItem('tati_encomendas', JSON.stringify(encomendas));
+                window.carregarEncomendasAdmin();
+            }
+        };
+
+        // NOVA ABA: FUNÇÕES DE CLIENTES E MIMOS
+        window.salvarCliente = function(event) {
+            event.preventDefault();
+            var novoCliente = {
+                id: 'cli_' + Date.now(),
+                nome: document.getElementById('cli-nome').value,
+                whatsapp: document.getElementById('cli-whatsapp').value,
+                pedidos: parseInt(document.getElementById('cli-pedidos').value) || 0,
+                endereco: document.getElementById('cli-endereco').value,
+                observacoes: document.getElementById('cli-obs').value
+            };
+            clientesTati.push(novoCliente);
+            // Ordena os clientes por número de pedidos (maior pro menor)
+            clientesTati.sort((a, b) => b.pedidos - a.pedidos);
+            localStorage.setItem('tati_clientes', JSON.stringify(clientesTati));
+            
+            document.getElementById('form-cliente').reset();
+            window.carregarClientesAdmin();
+            alert('Cliente cadastrado com sucesso!');
+        };
+
+        window.carregarClientesAdmin = function() {
+            var container = document.getElementById('lista-clientes-admin');
+            container.innerHTML = clientesTati.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum cliente cadastrado ainda.</p>' : '';
+            
+            clientesTati.forEach(function(cli) {
+                var telefoneLimpo = cli.whatsapp.replace(/\D/g, '');
+                if (telefoneLimpo && !telefoneLimpo.startsWith('55')) {
+                    telefoneLimpo = '55' + telefoneLimpo;
+                }
+                var linkZap = "https://wa.me/" + telefoneLimpo;
+
+                var badgePedidos = cli.pedidos > 5 ? '<span style="background: gold; color: #856404; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 8px;">👑 Cliente VIP</span>' : '';
+
+                container.innerHTML += '<div class="card" style="border-left: 4px solid #2e7d32; margin-bottom: 15px; background: #fafafa; padding: 15px;">' +
+                    '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 8px;">' +
+                        '<div>' +
+                            '<strong style="font-size: 1.1rem; color: #333;">' + cli.nome + '</strong>' + badgePedidos +
+                        '</div>' +
+                        '<a href="' + linkZap + '" target="_blank" style="background: #25d366; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; text-decoration: none; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">💬 Chamar no Zap</a>' +
+                    '</div>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>WhatsApp:</strong> ' + cli.whatsapp + '</p>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Endereço:</strong> ' + (cli.endereco || 'Não informado') + '</p>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Total de Pedidos Realizados:</strong> ' + cli.pedidos + '</p>' +
+                    '<p style="margin: 5px 0; font-size: 0.9rem; background: #fff8fa; padding: 8px; border-radius: 6px; border: 1px dashed var(--pink);"><strong>📝 Mimos e Observações:</strong><br>' + (cli.observacoes || 'Nenhuma observação.') + '</p>' +
+                    '<div style="text-align: right; margin-top: 10px;">' +
+                        '<button onclick="excluirCliente(\'' + cli.id + '\')" style="background: none; color: #c62828; border: none; cursor: pointer; font-size: 0.85rem; text-decoration: underline;">Remover Cadastro</button>' +
+                    '</div>' +
+                '</div>';
+            });
+        };
+
+        window.excluirCliente = function(id) {
+            if (confirm('Tem certeza que quer remover o cadastro desse cliente?')) {
+                clientesTati = clientesTati.filter(function(c) { return c.id !== id; });
+                localStorage.setItem('tati_clientes', JSON.stringify(clientesTati));
+                window.carregarClientesAdmin();
+            }
+        };
+
+
+        // FUNÇÕES DO PDV E MESAS
+        window.carregarPDV = function() {
+            var grid = document.getElementById('grid-mesas');
+            grid.innerHTML = '';
+            Object.keys(mesasState).forEach(function(key) {
+                var m = mesasState[key];
+                var totalMesa = 0;
+                for(var i=0; i<m.itens.length; i++) { totalMesa += m.itens[i].preco * m.itens[i].quantidade; }
+                var isOcupado = m.itens.length > 0;
+                var bgCor = isOcupado ? '#fff0f3' : '#f1f8e9';
+                var bordaCor = isOcupado ? 'var(--pink)' : '#c8e6c9';
+                var textoStatus = isOcupado ? 'R$ ' + Number(totalMesa).toFixed(2) : 'Livre';
+                var iconeStatus = isOcupado ? '<span style="color:var(--pink); font-weight:bold;">[OCUPADO]</span>' : '<span style="color:green; font-weight:bold;">[LIVRE]</span>';
+
+                grid.innerHTML += '<div onclick="abrirModalMesa(\'' + key + '\')" style="background: ' + bgCor + '; border: 2px solid ' + bordaCor + '; border-radius: 10px; padding: 12px; text-align: center; cursor: pointer;">' +
+                    '<div style="font-size: 0.75rem; margin-bottom: 5px;">' + iconeStatus + '</div>' +
+                    '<div style="font-weight: bold; font-size: 1.05rem; margin: 5px 0; color: var(--chocolate);">' + m.nome + '</div>' +
+                    '<div style="font-size: 0.85rem; color: ' + (isOcupado ? 'var(--pink)' : '#2e7d32') + '; font-weight: bold;">' + textoStatus + '</div>' +
+                '</div>';
+            });
+        };
+
+        window.abrirModalMesa = function(key) {
+            mesaAtualId = key;
+            var m = mesasState[key];
+            document.getElementById('titulo-modal-mesa').innerText = 'Mesa: ' + m.nome;
+            var selectProd = document.getElementById('select-produto-mesa');
+            selectProd.innerHTML = '';
+            if (produtos.length === 0) {
+                selectProd.innerHTML = '<option value="">Cadastre produtos primeiro</option>';
+            } else {
+                produtos.forEach(function(p) {
+                    var precoEfet = (p.promocao && p.preco_promo) ? p.preco_promo : p.price;
+                    selectProd.innerHTML += '<option value="' + p.id + '" data-nome="' + p.name + '" data-preco="' + precoEfet + '">' + p.name + ' (R$ ' + Number(precoEfet).toFixed(2) + ')</option>';
+                });
+            }
+            window.atualizarItensMesaUI();
+            document.getElementById('modal-mesa').style.display = 'flex';
+        };
+
+        window.fecharModalMesa = function() { document.getElementById('modal-mesa').style.display = 'none'; };
+
+        window.adicionarItemMesa = function() {
+            if (!mesaAtualId) return;
+            var selectProd = document.getElementById('select-produto-mesa');
+            var opt = selectProd.options[selectProd.selectedIndex];
+            if (!opt || !opt.value) return;
+            var produtoId = opt.value, nomeProd = opt.getAttribute('data-nome'), precoProd = parseFloat(opt.getAttribute('data-preco'));
+            var qtd = parseInt(document.getElementById('qtd-produto-mesa').value) || 1;
+            var m = mesasState[mesaAtualId], itemExistente = null;
+            for(var i=0; i<m.itens.length; i++) { if(String(m.itens[i].id) === String(produtoId)) itemExistente = m.itens[i]; }
+            if (itemExistente) itemExistente.quantidade += qtd;
+            else m.itens.push({ id: produtoId, name: nomeProd, preco: precoProd, quantidade: qtd });
+            localStorage.setItem('tati_mesas', JSON.stringify(mesasState));
+            window.atualizarItensMesaUI(); window.carregarPDV();
+        };
+
+        window.removerItemMesa = function(produtoId) {
+            if (!mesaAtualId) return;
+            var m = mesasState[mesaAtualId];
+            m.itens = m.itens.filter(function(i) { return String(i.id) !== String(produtoId); });
+            localStorage.setItem('tati_mesas', JSON.stringify(mesasState));
+            window.atualizarItensMesaUI(); window.carregarPDV();
+        };
+
+        window.atualizarItensMesaUI = function() {
+            if (!mesaAtualId) return;
+            var m = mesasState[mesaAtualId], listaUl = document.getElementById('lista-itens-mesa'), totalEl = document.getElementById('total-valor-mesa');
+            listaUl.innerHTML = '';
+            if (m.itens.length === 0) {
+                listaUl.innerHTML = '<p style="color: #888; text-align: center; font-size: 0.85rem; margin: 10px 0;">Nenhum item adicionado.</p>';
+                totalEl.innerText = '0.00'; return;
+            }
+            var total = 0;
+            m.itens.forEach(function(item) {
+                var sub = item.preco * item.quantidade; total += sub;
+                listaUl.innerHTML += '<li style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.85rem; border-bottom: 1px solid #eee; padding-bottom: 4px;"><span>' + item.quantidade + 'x ' + item.name + '</span><span>R$ ' + Number(sub).toFixed(2) + ' <button onclick="removerItemMesa(\'' + item.id + '\')" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold; margin-left:8px;">X</button></span></li>';
+            });
+            totalEl.innerText = Number(total).toFixed(2);
+        };
+
+        window.salvarEFecharMesa = function() { window.fecharModalMesa(); window.carregarPDV(); };
+
+        window.abrirCaixaMesa = function() {
+            if (!mesaAtualId) return;
+            var m = mesasState[mesaAtualId];
+            if (m.itens.length === 0) return alert('Esta mesa não possui itens consumidos!');
+            window.fecharModalMesa();
+            document.getElementById('titulo-modal-caixa').innerText = 'Caixa - ' + m.nome;
+            var resumoUl = document.getElementById('resumo-itens-caixa'), subtotal = 0;
+            resumoUl.innerHTML = '';
+            m.itens.forEach(function(item) {
+                var sub = item.preco * item.quantidade; subtotal += sub;
+                resumoUl.innerHTML += '<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>' + item.quantidade + 'x ' + item.name + '</span><span>R$ ' + Number(sub).toFixed(2) + '</span></div>';
+            });
+            document.getElementById('caixa-subtotal').innerText = Number(subtotal).toFixed(2);
+            document.getElementById('caixa-desconto').value = 0;
+            document.getElementById('caixa-pagamento').value = 'pix';
+            document.getElementById('campos-dinheiro').style.display = 'none';
+            document.getElementById('caixa-valor-recebido').value = '';
+            document.getElementById('caixa-troco').innerText = '0.00';
+            window.calcularTotalCaixa();
+            document.getElementById('modal-caixa').style.display = 'flex';
+        };
+
+        window.fecharModalCaixa = function() { document.getElementById('modal-caixa').style.display = 'none'; };
+
+        window.mudarFormaPagamentoCaixa = function() {
+            var forma = document.getElementById('caixa-pagamento').value, camposDinheiro = document.getElementById('campos-dinheiro');
+            if (forma === 'dinheiro') { camposDinheiro.style.display = 'block'; document.getElementById('caixa-valor-recebido').focus(); } 
+            else { camposDinheiro.style.display = 'none'; }
+        };
+
+        window.calcularTotalCaixa = function() {
+            var subtotal = parseFloat(document.getElementById('caixa-subtotal').innerText) || 0, descontoPercent = parseFloat(document.getElementById('caixa-desconto').value) || 0;
+            var valorDesconto = (subtotal * descontoPercent) / 100, totalFinal = subtotal - valorDesconto;
+            if (totalFinal < 0) totalFinal = 0;
+            document.getElementById('caixa-total-final').innerText = Number(totalFinal).toFixed(2);
+            window.calcularTroco();
+        };
+
+        window.calcularTroco = function() {
+            var totalFinal = parseFloat(document.getElementById('caixa-total-final').innerText) || 0, valorRecebido = parseFloat(document.getElementById('caixa-valor-recebido').value) || 0;
+            var troco = valorRecebido - totalFinal;
+            document.getElementById('caixa-troco').innerText = troco >= 0 ? Number(troco).toFixed(2) : '0.00';
+        };
+
+        window.concluirPagamentoCaixa = function() {
+            if (!mesaAtualId) return;
+            var formaPagto = document.getElementById('caixa-pagamento').value, totalFinal = parseFloat(document.getElementById('caixa-total-final').innerText) || 0;
+            var subtotal = parseFloat(document.getElementById('caixa-subtotal').innerText) || 0, desconto = parseFloat(document.getElementById('caixa-desconto').value) || 0;
+            var valorRecebido = parseFloat(document.getElementById('caixa-valor-recebido').value) || 0, troco = parseFloat(document.getElementById('caixa-troco').innerText) || 0;
+            if (formaPagto === 'dinheiro' && valorRecebido < totalFinal) return alert('O valor recebido é menor que o total a pagar!');
+            
+            var m = mesasState[mesaAtualId];
+            ultimaVenda = { id: Date.now(), data: new Date().toLocaleString(), mesa: m.nome, itens: m.itens.slice(), subtotal: subtotal, desconto: desconto, total: totalFinal, pagamento: formaPagto, recebido: valorRecebido, troco: troco };
+            
+            vendasMesas.push(ultimaVenda);
+            localStorage.setItem('tati_vendas_mesas', JSON.stringify(vendasMesas));
+            m.itens = []; localStorage.setItem('tati_mesas', JSON.stringify(mesasState));
+            
+            window.fecharModalCaixa(); window.carregarPDV();
+            document.getElementById('input-zap-cliente').value = '';
+            document.getElementById('modal-recibo').style.display = 'flex';
+        };
+
+        window.fecharModalRecibo = function() { document.getElementById('modal-recibo').style.display = 'none'; ultimaVenda = null; };
+
+        window.enviarComprovanteWhatsApp = function() {
+            if (!ultimaVenda) return;
+            var inputTel = document.getElementById('input-zap-cliente').value;
+            if (!inputTel) return alert('Digite o número do WhatsApp do cliente!');
+            var telefoneLimpo = inputTel.replace(/\D/g, '');
+            if (telefoneLimpo.length < 10) return alert('Número de telefone inválido!');
+            if (!telefoneLimpo.startsWith('55')) telefoneLimpo = '55' + telefoneLimpo;
+
+            var v = ultimaVenda;
+            var msg = "*COMPROVANTE DE CONSUMO - Tati Amor Doce*\n";
+            msg += "Mesa: " + v.mesa + "\n----------------------------\n";
+            v.itens.forEach(function(i) { msg += "• " + i.quantidade + "x " + i.name + " (R$ " + Number(i.preco * i.quantidade).toFixed(2) + ")\n"; });
+            msg += "----------------------------\nSubtotal: R$ " + Number(v.subtotal).toFixed(2) + "\n";
+            if(v.desconto > 0) msg += "Desconto: " + v.desconto + "%\n";
+            msg += "*Total Pago: R$ " + Number(v.total).toFixed(2) + "*\nForma de Pagto: " + v.pagamento.toUpperCase() + "\n";
+            if(v.pagamento === 'dinheiro') { msg += "Recebido: R$ " + Number(v.recebido).toFixed(2) + "\nTroco: R$ " + Number(v.troco).toFixed(2) + "\n"; }
+            msg += "\nObrigado pela preferência! Volte sempre!";
+            window.open("https://wa.me/" + telefoneLimpo + "?text=" + encodeURIComponent(msg), '_blank');
+        };
+
+        window.imprimirComprovantePDF = function() {
+            if (!ultimaVenda) return;
+            var v = ultimaVenda;
+            var htmlRecibo = '<div style="text-align: center;"><h2 style="color: #d81b60; margin: 0 0 2px 0; font-size: 16px;">Tati Amor Doce</h2><p style="font-size: 10px; margin: 0 0 5px 0;">R. São Geraldo - Centro, Bom Jesus dos Perdões</p><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><p style="font-weight: bold; margin: 4px 0; font-size: 13px;">' + v.mesa + '</p><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><div style="text-align: left; font-size: 11px;">';
+            v.itens.forEach(function(i) { htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-bottom: 3px;"><span>' + i.quantidade + 'x ' + i.name + '</span><span>R$ ' + Number(i.preco * i.quantidade).toFixed(2) + '</span></div>'; });
+            htmlRecibo += '</div><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px;"><span>Subtotal:</span><span>R$ ' + Number(v.subtotal).toFixed(2) + '</span></div>';
+            if(v.desconto > 0) htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px;"><span>Desconto:</span><span>' + v.desconto + '%</span></div>';
+            htmlRecibo += '<div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; font-size: 13px;"><span>TOTAL:</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="display: flex; justify-content: space-between; margin-top: 3px; font-size: 11px;"><span>Pagamento:</span><span>' + v.pagamento.toUpperCase() + '</span></div>';
+            if(v.pagamento === 'dinheiro') { htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px;"><span>Recebido:</span><span>R$ ' + Number(v.recebido).toFixed(2) + '</span></div><div style="display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px;"><span>Troco:</span><span>R$ ' + Number(v.troco).toFixed(2) + '</span></div>'; }
+            htmlRecibo += '<div style="border-top: 1px dashed #000; margin: 5px 0;"></div><p style="font-size: 10px; text-align: center; margin: 5px 0 0 0;">Obrigado pela preferência!<br>Volte sempre!</p></div>';
+            document.getElementById('area-impressao').innerHTML = htmlRecibo;
+            window.print();
+        };
+
+        // Funções do Modal Relatório de Vendas
+        window.abrirRelatorioVendas = function() {
+            document.getElementById('modal-relatorio-vendas').style.display = 'flex';
+            window.mudarAbaRelatorio('mesas', document.querySelector('.rel-tab-btn'));
+        };
+        window.fecharRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'none'; };
+        window.mudarAbaRelatorio = function(tipo, btn) {
+            abaRelatorioAtual = tipo;
+            var botoes = document.querySelectorAll('.rel-tab-btn');
+            for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
+            if(btn) btn.classList.add('active');
+            window.renderizarConteudoRelatorio();
+        };
+
+        window.renderizarConteudoRelatorio = function() {
+            var container = document.getElementById('conteudo-relatorio'), totalGeralEl = document.getElementById('relatorio-total-geral');
+            container.innerHTML = ''; var somaTotal = 0;
+
+            if (abaRelatorioAtual === 'mesas') {
+                if (vendasMesas.length === 0) { container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda de mesa registrada ainda.</p>'; totalGeralEl.innerText = '0.00'; return; }
+                vendasMesas.slice().reverse().forEach(function(v) {
+                    somaTotal += v.total;
+                    var itensStr = v.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ');
+                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + v.mesa + '</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Itens: ' + itensStr + '</div><div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + v.pagamento.toUpperCase() + '</span><span>' + v.data + '</span></div></div>';
+                });
+            } else if (abaRelatorioAtual === 'cardapio') {
+                var vendasCardapio = [];
+                try { vendasCardapio = JSON.parse(localStorage.getItem('tati_vendas_cardapio')) || []; } catch(e) { vendasCardapio = []; }
+                if (vendasCardapio.length === 0) { container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda de cardápio online registrada ainda.</p>'; totalGeralEl.innerText = '0.00'; return; }
+                vendasCardapio.slice().reverse().forEach(function(vc) {
+                    somaTotal += vc.total;
+                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>Cardápio Online</span><span>R$ ' + Number(vc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + (vc.cliente || 'Balcão') + '</div><div style="font-size: 0.75rem; color: #888;">Data: ' + vc.data + '</div></div>';
+                });
+            } else if (abaRelatorioAtual === 'encomendas') {
+                if (encomendas.length === 0) { container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda registrada ainda.</p>'; totalGeralEl.innerText = '0.00'; return; }
+                encomendas.forEach(function(enc) {
+                    somaTotal += Number(enc.total || 0);
+                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + enc.opcaoEscolhida + '</span><span>R$ ' + Number(enc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + enc.nomeCliente + ' (' + enc.telefone + ')</div><div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Retirada: ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</span><span>Status: ' + enc.statusPagamento + '</span></div></div>';
+                });
+            }
+            totalGeralEl.innerText = somaTotal.toFixed(2);
+        };
+
+        window.limparHistoricoRelatorio = function() {
+            if (confirm('Deseja realmente limpar o histórico da aba atual?')) {
+                if (abaRelatorioAtual === 'mesas') { vendasMesas = []; localStorage.removeItem('tati_vendas_mesas'); } 
+                else if (abaRelatorioAtual === 'cardapio') { localStorage.removeItem('tati_vendas_cardapio'); } 
+                else if (abaRelatorioAtual === 'encomendas') { encomendas = []; localStorage.removeItem('tati_encomendas'); window.carregarEncomendasAdmin(); }
+                window.renderizarConteudoRelatorio();
+            }
+        };
+
+        window.onload = function() { window.carregarProdutosAdmin(); window.carregarClientesAdmin(); };
+    </script>
+</body>
+</html>
