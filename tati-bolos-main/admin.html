@@ -549,6 +549,7 @@
             </div>
         </div>
     </div>
+<script type="module" src="config.js"></script>
 
     <script>
         var produtos = []; try { produtos = JSON.parse(localStorage.getItem('tati_products')) || []; } catch(e) { produtos = []; }
@@ -670,95 +671,283 @@
             document.getElementById('grupo-preco-promo').style.display = isChecked ? 'block' : 'none';
         };
 
-        window.carregarProdutosAdmin = function() {
-            var container = document.getElementById('lista-produtos-admin');
-            container.innerHTML = produtos.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum produto cadastrado.</p>' : '';
-            produtos.forEach(function(produto) {
-                var precoDisplay = 'R$ ' + Number(produto.price).toFixed(2);
-                if (produto.promocao && produto.preco_promo) precoDisplay = '<span style="text-decoration: line-through; color: #888;">R$ ' + Number(produto.price).toFixed(2) + '</span> <strong style="color: var(--pink);">R$ ' + Number(produto.preco_promo).toFixed(2) + '</strong>';
-                var tagPromo = produto.promocao ? '<span style="color:red; font-size:0.8rem; font-weight:bold;">[PROMO]</span>' : '';
-                container.innerHTML += '<div class="item-list"><div style="display: flex; align-items: center; gap: 10px;"><img src="' + produto.imagem + '" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; background: #eee;"><div><strong>' + produto.name + '</strong> ' + tagPromo + '<br><span style="font-size: 0.8rem; color: #666;">' + precoDisplay + ' | <em>' + produto.category + '</em></span></div></div><button onclick="excluirProduto(\'' + produto.id + '\')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button></div>';
-            });
+window.carregarProdutosAdmin = async function() {
+    var container = document.getElementById('lista-produtos-admin') || document.querySelector('.lista-produtos') || document.getElementById('produtos-container');
+    if (!container) return;
+    
+    container.innerHTML = "<p style='padding: 10px;'>Carregando produtos da nuvem...</p>";
+    
+    var produtosNuvem = await window.obterProdutosDaNuvem();
+    container.innerHTML = "";
+    
+    if (produtosNuvem.length === 0) {
+        container.innerHTML = "<p style='padding: 10px; color: #666;'>Nenhum produto cadastrado na nuvem.</p>";
+        return;
+    }
+
+    produtosNuvem.forEach(function(produto) {
+        var precoDisplay = 'R$ ' + Number(produto.preco || 0).toFixed(2);
+        container.innerHTML += `
+            <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="${produto.imagem || ''}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 4px;">
+                    <div>
+                        <strong>${produto.name || produto.nome || 'Produto'}</strong><br>
+                        <small style="color: #666;">Categoria: ${produto.categoria || 'Geral'} | <strong>${precoDisplay}</strong></small>
+                    </div>
+                </div>
+                <button onclick="deletarProdutoAdmin('${produto.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Excluir</button>
+            </div>
+        `;
+    });
+};
+
+// Função para acionar a exclusão
+window.deletarProdutoAdmin = async function(firestoreId) {
+    if (!confirm('Deseja realmente excluir este produto da nuvem?')) return;
+    
+    var sucesso = await window.excluirDaNuvem(firestoreId);
+    if (sucesso) {
+        alert("Produto excluído com sucesso!");
+        carregarProdutosAdmin(); // Atualiza a tela na hora
+    } else {
+        alert("Erro ao excluir o produto.");
+    }
+};
+
+// Carrega ao abrir a página
+document.addEventListener("DOMContentLoaded", function() {
+    if (typeof carregarProdutosAdmin === 'function') {
+        carregarProdutosAdmin();
+    }
+});
+
+window.salvarProduto = async function(event) {
+    event.preventDefault(); 
+    var fileInput = document.getElementById('imagem-file');
+    if (!fileInput.files || !fileInput.files[0]) return alert('Selecione uma foto!');
+    var file = fileInput.files[0], reader = new FileReader();
+    
+    reader.onload = async function(e) {
+        var nomeInput = document.getElementById('nomeProduto') || document.querySelector('input[name="nome"]') || document.querySelectorAll('input[type="text"]')[0];
+        var precoInput = document.getElementById('precoProduto') || document.querySelector('input[name="preco"]') || document.querySelector('input[type="number"]');
+        var catInput = document.getElementById('categoriaProduto') || document.querySelector('select');
+
+        var novoProduto = {
+            id: 'prod_' + Date.now(),
+            name: nomeInput ? nomeInput.value : 'Bolo',
+            preco: precoInput ? precoInput.value : '0',
+            categoria: catInput ? catInput.value : 'Geral',
+            imagem: e.target.result
         };
 
-        window.salvarProduto = function(event) {
-            event.preventDefault(); var fileInput = document.getElementById('imagem-file');
-            if (!fileInput.files || !fileInput.files[0]) return alert('Selecione uma foto!');
-            var file = fileInput.files[0], reader = new FileReader();
-            reader.onload = function(e) {
-                produtos.push({ id: 'prod_' + Date.now(), name: document.getElementById('nome').value, desc: document.getElementById('desc').value, price: parseFloat(document.getElementById('preco').value), category: document.getElementById('categoria').value, imagem: e.target.result, promocao: document.getElementById('promocao').checked, preco_promo: document.getElementById('promocao').checked ? parseFloat(document.getElementById('preco-promo').value) : null });
-                localStorage.setItem('tati_products', JSON.stringify(produtos));
-                document.getElementById('form-produto').reset(); document.getElementById('grupo-preco-promo').style.display = 'none'; window.carregarProdutosAdmin(); alert('Produto cadastrado!');
-            };
-            reader.readAsDataURL(file);
-        };
+        if (!novoProduto.name || novoProduto.name === '') {
+            return alert('Preencha o nome do produto!');
+        }
+
+        // Salva direto na nuvem do Firebase!
+        await salvarNaNuvem("produtos", novoProduto);
+
+        var formEl = document.getElementById('form-produto') || document.querySelector('form');
+        if (formEl) formEl.reset();
+        
+        alert("Produto salvo na nuvem com sucesso!");
+        
+        if (typeof carregarProdutosAdmin === 'function') {
+            carregarProdutosAdmin();
+        }
+    };
+    reader.readAsDataURL(file);
+};
         window.excluirProduto = function(id) { if (confirm('Deseja excluir este produto?')) { produtos = produtos.filter(function(p) { return p.id !== id; }); localStorage.setItem('tati_products', JSON.stringify(produtos)); window.carregarProdutosAdmin(); } };
 
-        window.salvarInsumo = function(event) {
-            event.preventDefault();
-            insumos.push({ id: Date.now(), nome: document.getElementById('ins-nome').value, unidade: document.getElementById('ins-unidade').value, valor: parseFloat(document.getElementById('ins-valor').value), fornecedor: document.getElementById('ins-fornecedor').value });
-            localStorage.setItem('tati_insumos', JSON.stringify(insumos)); document.getElementById('form-insumo').reset(); window.carregarInsumosAdmin(); alert('Insumo cadastrado!');
-        };
-        window.carregarInsumosAdmin = function() {
-            var container = document.getElementById('lista-insumos-admin'); container.innerHTML = insumos.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum insumo cadastrado.</p>' : '';
-            insumos.forEach(function(ins) { container.innerHTML += '<div class="item-list"><div><strong>' + ins.nome + '</strong><br><span style="font-size: 0.8rem; color: #666;">R$ ' + Number(ins.valor).toFixed(2) + ' por ' + ins.unidade + ' | Fornecedor: <em>' + ins.fornecedor + '</em></span></div><button onclick="excluirInsumo(' + ins.id + ')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button></div>'; });
-        };
-        window.excluirInsumo = function(id) { insumos = insumos.filter(function(i) { return i.id !== id; }); localStorage.setItem('tati_insumos', JSON.stringify(insumos)); window.carregarInsumosAdmin(); };
+window.salvarInsumo = async function(event) {
+    event.preventDefault();
+    var nomeInput = document.getElementById('ins-nome');
+    if (!nomeInput || !nomeInput.value.trim()) {
+        return alert('Preencha o nome do insumo!');
+    }
 
-        // GESTÃO DE OPÇÕES DE ENCOMENDA NO ADMIN
-        window.salvarOpcaoEncomenda = function(event) {
-            event.preventDefault();
-            var nome = document.getElementById('opt-enc-nome').value.trim();
-            var preco = parseFloat(document.getElementById('opt-enc-preco').value);
-            opcoesEncomenda.push({ id: Date.now(), nome: nome, preco: preco });
-            localStorage.setItem('tati_encomenda_opcoes', JSON.stringify(opcoesEncomenda));
-            document.getElementById('opt-enc-nome').value = '';
-            document.getElementById('opt-enc-preco').value = '';
-            window.renderizarOpcoesEncomendaAdmin();
+    var novoInsumo = {
+        id: 'ins_' + Date.now(),
+        nome: nomeInput.value.trim(),
+        criadoEm: new Date().toLocaleString('pt-BR')
+    };
+
+    var sucesso = await window.salvarInsumoNaNuvem(novoInsumo);
+    if (sucesso) {
+        nomeInput.value = '';
+        alert("Insumo salvo na nuvem com sucesso!");
+        carregarInsumosAdmin();
+    } else {
+        alert("Erro ao salvar insumo na nuvem.");
+    }
+};
+
+window.carregarInsumosAdmin = async function() {
+    var container = document.getElementById('lista-insumos-admin');
+    if (!container) return;
+    
+    container.innerHTML = "<p style='padding: 10px;'>Carregando insumos da nuvem...</p>";
+    
+    var insumosNuvem = await window.obterInsumosDaNuvem();
+    container.innerHTML = "";
+    
+    if (insumosNuvem.length === 0) {
+        container.innerHTML = "<p style='padding: 10px; color: #666;'>Nenhum insumo cadastrado na nuvem.</p>";
+        return;
+    }
+
+    insumosNuvem.forEach(function(ins) {
+        container.innerHTML += `
+            <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
+                <div>
+                    <strong>${ins.nome || ins.name || 'Insumo'}</strong>
+                </div>
+                <button onclick="excluirInsumoAdmin('${ins.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Excluir</button>
+            </div>
+        `;
+    });
+};
+
+window.excluirInsumoAdmin = async function(firestoreId) {
+    if (!confirm('Deseja realmente excluir este insumo da nuvem?')) return;
+    
+    var sucesso = await window.excluirInsumoDaNuvem(firestoreId);
+    if (sucesso) {
+        alert("Insumo excluído com sucesso!");
+        carregarInsumosAdmin();
+    } else {
+        alert("Erro ao excluir o insumo.");
+    }
+};
+
+document.addEventListener("DOMContentLoaded", function() {
+    if (document.getElementById('lista-insumos-admin')) {
+        carregarInsumosAdmin();
+    }
+});
+
+// Carrega os insumos automaticamente ao abrir a página
+document.addEventListener("DOMContentLoaded", function() {
+    if (document.getElementById('lista-insumos-admin')) {
+        carregarInsumosAdmin();
+    }
+});
+
+// GESTÃO DE OPÇÕES DE ENCOMENDA NO ADMIN (INTEGRADO À NUVEM)
+
+window.salvarOpcaoEncomenda = async function(event) {
+    event.preventDefault();
+    var nomeInput = document.getElementById('opt-enc-nome');
+    var precoInput = document.getElementById('opt-enc-preco');
+    
+    if (!nomeInput || !precoInput) return;
+    var nome = nomeInput.value.trim();
+    var preco = parseFloat(precoInput.value);
+
+    if (!nome || isNaN(preco)) {
+        return alert("Preencha o nome e um preço válido!");
+    }
+
+    var novaOpcao = {
+        id: 'opt_' + Date.now(),
+        nome: nome,
+        preco: preco
+    };
+
+    var sucesso = await window.salvarOpcaoEncomendaNaNuvem(novaOpcao);
+    if (sucesso) {
+        nomeInput.value = '';
+        precoInput.value = '';
+        window.renderizarOpcoesEncomendaAdmin();
+        if (typeof window.carregarOpcoesSelectBalcao === 'function') {
             window.carregarOpcoesSelectBalcao();
-            alert("Opção cadastrada!");
-        };
+        }
+        alert("Opção cadastrada na nuvem com sucesso!");
+    } else {
+        alert("Erro ao cadastrar opção.");
+    }
+};
 
-        window.editarOpcaoEncomenda = function(id) {
-            var opt = opcoesEncomenda.find(o => o.id === id);
-            if(!opt) return;
-            var novoNome = prompt("Editar nome:", opt.nome);
-            if(novoNome === null) return;
-            var novoPrecoStr = prompt("Editar valor (R$):", opt.preco);
-            if(novoPrecoStr === null) return;
-            var novoPreco = parseFloat(novoPrecoStr.replace(',', '.'));
-            if(isNaN(novoPreco) || novoPreco < 0) { alert("Valor inválido!"); return; }
-            opt.nome = novoNome.trim(); opt.preco = novoPreco;
-            localStorage.setItem('tati_encomenda_opcoes', JSON.stringify(opcoesEncomenda));
-            window.renderizarOpcoesEncomendaAdmin();
+window.renderizarOpcoesEncomendaAdmin = async function() {
+    var container = document.getElementById('lista-opcoes-encomenda');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="padding: 10px;">Carregando opções da nuvem...</p>';
+    
+    var opcoesNuvem = await window.obterOpcoesEncomendaDaNuvem();
+    container.innerHTML = '';
+    
+    if (opcoesNuvem.length === 0) {
+        container.innerHTML = '<p style="color: #888; padding: 10px;">Nenhuma opção cadastrada na nuvem.</p>';
+        return;
+    }
+
+    opcoesNuvem.forEach(function(o) {
+        var precoFmt = 'R$ ' + Number(o.preco || 0).toFixed(2);
+        container.innerHTML += `
+            <div style="background: #fafafa; border: 1px solid #eee; padding: 10px; margin-bottom: 5px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <div><strong>${o.nome}</strong> – <span style="color: var(--pink-primary, #d63384);">${precoFmt}</span></div>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="editarOpcaoEncomenda('${o.firestoreId}')" style="background: #ffc107; color: #000; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Editar</button>
+                    <button onclick="excluirOpcaoEncomenda('${o.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Excluir</button>
+                </div>
+            </div>
+        `;
+    });
+};
+
+window.editarOpcaoEncomenda = async function(firestoreId) {
+    var novoNomeStr = prompt("Editar nome:");
+    if (novoNomeStr === null) return;
+    var novoNome = novoNomeStr.trim();
+    if (!novoNome) return alert("Nome inválido!");
+
+    var novoPrecoStr = prompt("Editar valor (R$):");
+    if (novoPrecoStr === null) return;
+    var novoPreco = parseFloat(novoPrecoStr.replace(',', '.'));
+    if (isNaN(novoPreco) || novoPreco < 0) {
+        return alert("Valor inválido!");
+    }
+
+    var sucesso = await window.atualizarOpcaoEncomendaNaNuvem(firestoreId, {
+        nome: novoNome,
+        preco: novoPreco
+    });
+
+    if (sucesso) {
+        window.renderizarOpcoesEncomendaAdmin();
+        if (typeof window.carregarOpcoesSelectBalcao === 'function') {
             window.carregarOpcoesSelectBalcao();
-            alert("Atualizado com sucesso!");
-        };
+        }
+        alert("Atualizado na nuvem com sucesso!");
+    } else {
+        alert("Erro ao atualizar a opção.");
+    }
+};
 
-        window.excluirOpcaoEncomenda = function(id) {
-            if(confirm("Deseja excluir esta opção?")) {
-                opcoesEncomenda = opcoesEncomenda.filter(o => o.id !== id);
-                localStorage.setItem('tati_encomenda_opcoes', JSON.stringify(opcoesEncomenda));
-                window.renderizarOpcoesEncomendaAdmin();
-                window.carregarOpcoesSelectBalcao();
-            }
-        };
+window.excluirOpcaoEncomenda = async function(firestoreId) {
+    if (!confirm("Deseja excluir esta opção da nuvem?")) return;
+    
+    var sucesso = await window.excluirOpcaoEncomendaDaNuvem(firestoreId);
+    if (sucesso) {
+        window.renderizarOpcoesEncomendaAdmin();
+        if (typeof window.carregarOpcoesSelectBalcao === 'function') {
+            window.carregarOpcoesSelectBalcao();
+        }
+        alert("Opção excluída com sucesso!");
+    } else {
+        alert("Erro ao excluir a opção.");
+    }
+};
 
-        window.renderizarOpcoesEncomendaAdmin = function() {
-            var container = document.getElementById('lista-opcoes-encomenda');
-            if(!container) return;
-            container.innerHTML = '';
-            if(opcoesEncomenda.length === 0) { container.innerHTML = '<p style="color: #888; font-size: 0.85rem;">Nenhuma opção cadastrada.</p>'; return; }
-            opcoesEncomenda.forEach(function(o) {
-                container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">' +
-                    '<div><strong>' + o.nome + '</strong> — <span style="color: var(--pink); font-weight: bold;">R$ ' + Number(o.preco).toFixed(2) + '</span></div>' +
-                    '<div style="display: flex; gap: 5px;">' +
-                        '<button onclick="editarOpcaoEncomenda(' + o.id + ')" style="background: #e3f2fd; color: #1565c0; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">Editar</button>' +
-                        '<button onclick="excluirOpcaoEncomenda(' + o.id + ')" style="background: #ffebee; color: #c62828; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">Excluir</button>' +
-                    '</div>' +
-                '</div>';
-            });
-        };
+// Carrega ao abrir a página do admin
+document.addEventListener("DOMContentLoaded", function() {
+    if (document.getElementById('lista-opcoes-encomenda')) {
+        window.renderizarOpcoesEncomendaAdmin();
+    }
+});
 
         window.carregarOpcoesSelectBalcao = function() {
             var select = document.getElementById('eb-opcao');
@@ -770,11 +959,13 @@
         };
 
         // ZONAS E ENCOMENDAS DO BALCÃO
-        window.carregarZonasBalcao = function() {
+// ZONAS E ENCOMENDAS DO BALCÃO (NUVEM)
+        window.carregarZonasBalcao = async function() {
             var select = document.getElementById('eb-tipo-entrega');
             if(!select) return;
             select.innerHTML = '<option value="Retirada na Loja" data-taxa="0">Retirada na Loja (Grátis)</option>';
-            zonasFrete.forEach(function(z) {
+            var zonas = await window.obterZonasFreteDaNuvem();
+            zonas.forEach(function(z) {
                 select.innerHTML += '<option value="Entrega: ' + z.nome + '" data-taxa="' + z.taxa + '">Entrega: ' + z.nome + ' (R$ ' + Number(z.taxa).toFixed(2) + ')</option>';
             });
         };
@@ -786,12 +977,11 @@
             else { campoEnd.style.display = 'none'; }
         };
 
-        window.salvarEncomendaBalcao = function(event) {
+        window.salvarEncomendaBalcao = async function(event) {
             event.preventDefault();
             var selectOpcao = document.getElementById('eb-opcao');
             var nomeOpcao = selectOpcao.value;
-            var optObj = opcoesEncomenda.find(o => o.nome === nomeOpcao);
-            var precoOpcao = optObj ? optObj.preco : parseFloat(selectOpcao.options[selectOpcao.selectedIndex].getAttribute('data-preco')) || 0;
+            var precoOpcao = parseFloat(selectOpcao.options[selectOpcao.selectedIndex].getAttribute('data-preco')) || 0;
 
             var selectEntrega = document.getElementById('eb-tipo-entrega');
             var tipoEntregaVal = selectEntrega.value;
@@ -807,7 +997,7 @@
             var fileInput = document.getElementById('eb-foto');
             var file = fileInput.files[0];
 
-            var processarCadastroEncomenda = function(fotoBase64 = '') {
+            var processarCadastroEncomenda = async function(fotoBase64 = '') {
                 var novaEnc = {
                     id: Date.now(),
                     nomeCliente: document.getElementById('eb-nome').value,
@@ -828,12 +1018,15 @@
                     atendente: usuarioLogado ? usuarioLogado.nome : 'Mestre (Tati)'
                 };
 
-                encomendas.push(novaEnc);
-                localStorage.setItem('tati_encomendas', JSON.stringify(encomendas));
-                document.getElementById('form-encomenda-balcao').reset();
-                document.getElementById('eb-campo-endereco').style.display = 'none';
-                window.carregarEncomendasAdmin();
-                alert("Encomenda registrada com sucesso!");
+                var sucesso = await window.salvarEncomendaNaNuvem(novaEnc);
+                if (sucesso) {
+                    document.getElementById('form-encomenda-balcao').reset();
+                    document.getElementById('eb-campo-endereco').style.display = 'none';
+                    window.carregarEncomendasAdmin();
+                    alert("Encomenda registrada na nuvem com sucesso!");
+                } else {
+                    alert("Erro ao salvar encomenda.");
+                }
             };
 
             if (file) {
@@ -845,22 +1038,39 @@
             }
         };
 
-        window.carregarEncomendasAdmin = function() {
-            var container = document.getElementById('lista-encomendas-admin'); container.innerHTML = encomendas.length === 0 ? '<p style="color: #666; text-align: center;">Nenhuma encomenda recebida.</p>' : '';
-            encomendas.forEach(function(enc, index) {
+        window.carregarEncomendasAdmin = async function() {
+            var container = document.getElementById('lista-encomendas-admin');
+            if (!container) return;
+            container.innerHTML = '<p style="color: #666; text-align: center;">Carregando encomendas da nuvem...</p>';
+            
+            var encNuvem = await window.obterEncomendasDaNuvem();
+            container.innerHTML = encNuvem.length === 0 ? '<p style="color: #666; text-align: center;">Nenhuma encomenda recebida na nuvem.</p>' : '';
+            
+            encNuvem.forEach(function(enc) {
                 var fotoHtml = enc.foto ? '<img src="' + enc.foto + '" onclick="abrirZoom(\'' + enc.foto + '\')" style="width: 65px; height: 65px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc; margin-top: 5px; cursor: pointer;">' : '<span style="font-size:0.8rem; color:#888;">Sem foto de referência</span>';
                 var atendenteHtml = enc.atendente ? '<br><span style="color:#2e7d32; font-size: 0.85rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
                 var entregaInfo = enc.tipoEntrega && enc.tipoEntrega.includes('Entrega') ? '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tipo:</strong> ' + enc.tipoEntrega + '<br><strong>Endereço:</strong> ' + (enc.endereco || 'Não informado') + '</p>' : '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tipo:</strong> Retirada na Loja</p>';
 
-                container.innerHTML += '<div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;"><div style="display: flex; justify-content: space-between;"><strong style="font-size: 1.05rem; color: var(--pink);">' + enc.nomeCliente + '</strong><span style="font-size: 0.8rem; color: #666;">' + enc.dataPedido + '</span></div><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tel:</strong> ' + enc.telefone + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Retirada/Entrega:</strong> ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</p>' + entregaInfo + '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Opção:</strong> ' + enc.opcaoEscolhida + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Detalhes:</strong> ' + enc.descricao + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Valor Total:</strong> R$ ' + Number(enc.total).toFixed(2) + ' | <strong>Pagamento:</strong> ' + enc.statusPagamento + ' (' + enc.formaPagamento + ')' + atendenteHtml + '</p><div style="margin-top: 8px;"><label style="font-size: 0.8rem; font-weight: bold;">Foto de Referência:</label><br>' + fotoHtml + '</div><div style="margin-top: 15px; text-align: right;"><button onclick="removerEncomenda(' + index + ')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Concluir / Remover</button></div></div>';
+                container.innerHTML += '<div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;"><div style="display: flex; justify-content: space-between;"><strong style="font-size: 1.05rem; color: var(--pink);">' + enc.nomeCliente + '</strong><span style="font-size: 0.8rem; color: #666;">' + enc.dataPedido + '</span></div><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tel:</strong> ' + enc.telefone + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Retirada/Entrega:</strong> ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</p>' + entregaInfo + '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Opção:</strong> ' + enc.opcaoEscolhida + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Detalhes:</strong> ' + enc.descricao + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Valor Total:</strong> R$ ' + Number(enc.total).toFixed(2) + ' | <strong>Pagamento:</strong> ' + enc.statusPagamento + ' (' + enc.formaPagamento + ')' + atendenteHtml + '</p><div style="margin-top: 8px;"><label style="font-size: 0.8rem; font-weight: bold;">Foto de Referência:</label><br>' + fotoHtml + '</div><div style="margin-top: 15px; text-align: right;"><button onclick="removerEncomendaAdmin(\'' + enc.firestoreId + '\')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Concluir / Remover</button></div></div>';
             });
         };
 
         window.abrirZoom = function(url) { var modal = document.getElementById('modal-zoom'), img = document.getElementById('img-zoom-conteudo'); if (modal && img) { img.src = url; modal.style.display = 'flex'; } };
         window.fecharZoom = function() { var modal = document.getElementById('modal-zoom'); if (modal) modal.style.display = 'none'; };
-        window.removerEncomenda = function(index) { if (confirm('Deseja remover esta encomenda da lista?')) { encomendas.splice(index, 1); localStorage.setItem('tati_encomendas', JSON.stringify(encomendas)); window.carregarEncomendasAdmin(); } };
+        
+        window.removerEncomendaAdmin = async function(firestoreId) {
+            if (confirm('Deseja remover esta encomenda da nuvem?')) {
+                var sucesso = await window.excluirEncomendaDaNuvem(firestoreId);
+                if (sucesso) {
+                    window.carregarEncomendasAdmin();
+                    alert("Encomenda removida com sucesso!");
+                } else {
+                    alert("Erro ao excluir encomenda.");
+                }
+            }
+        };
 
-        // CALENDÁRIO DE ENCOMENDAS (NOVO MODAL)
+        // CALENDÁRIO DE ENCOMENDAS (NUVEM)
         window.abrirCalendarioEncomendas = function() {
             document.getElementById('modal-calendario-encomendas').style.display = 'flex';
             window.renderizarCalendarioEncomendas();
@@ -870,17 +1080,20 @@
             document.getElementById('modal-calendario-encomendas').style.display = 'none';
         };
 
-        window.renderizarCalendarioEncomendas = function() {
+        window.renderizarCalendarioEncomendas = async function() {
             var container = document.getElementById('conteudo-calendario-encomendas');
+            if (!container) return;
+            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Carregando...</p>';
+            
+            var encNuvem = await window.obterEncomendasDaNuvem();
             container.innerHTML = '';
             
-            if (encomendas.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda agendada no momento.</p>';
+            if (encNuvem.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda agendada na nuvem.</p>';
                 return;
             }
 
-            // Ordena as encomendas por data e horário de retirada
-            var encomendasOrdenadas = encomendas.slice().sort(function(a, b) {
+            var encomendasOrdenadas = encNuvem.slice().sort(function(a, b) {
                 var dataA = a.dataRetirada + ' ' + (a.horaRetirada || '00:00');
                 var dataB = b.dataRetirada + ' ' + (b.horaRetirada || '00:00');
                 return dataA.localeCompare(dataB);
@@ -893,7 +1106,6 @@
                 var cardBg = isHoje ? '#fff0f3' : '#fafafa';
                 var bordaCor = isHoje ? '#d81b60' : '#ddd';
                 var badgeHoje = isHoje ? '<span style="background: var(--pink); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">🔥 É HOJE!</span>' : '';
-
                 var tipoAtendimento = enc.tipoEntrega && enc.tipoEntrega.includes('Entrega') ? '🛵 Delivery (' + enc.tipoEntrega + ')' : '🏪 Retirada na Loja';
 
                 container.innerHTML += '<div style="background: ' + cardBg + '; border: 1px solid ' + bordaCor + '; padding: 15px; border-radius: 8px; margin-bottom: 12px;">' +
@@ -909,17 +1121,136 @@
             });
         };
 
-        // VERIFICAR LEMBRETES DE ENCOMENDA (MENOS DE 1 HORA)
-        window.verificarLembretesEncomendas = function() {
+        // ZONAS DE FRETE ADMIN (NUVEM)
+        window.abrirZonasFrete = function() { document.getElementById('modal-zonas-frete').style.display = 'flex'; window.renderizarZonasFrete(); };
+        window.fecharZonasFrete = function() { document.getElementById('modal-zonas-frete').style.display = 'none'; };
+        
+        window.salvarZonaFrete = async function(event) {
+            event.preventDefault();
+            var nome = document.getElementById('zona-nome-input').value;
+            var taxa = parseFloat(document.getElementById('zona-taxa-input').value);
+            var sucesso = await window.salvarZonaFreteNaNuvem({ nome: nome, taxa: taxa });
+            if (sucesso) {
+                document.getElementById('zona-nome-input').value = ''; 
+                document.getElementById('zona-taxa-input').value = '';
+                window.renderizarZonasFrete();
+                window.carregarZonasBalcao();
+                alert("Zona adicionada na nuvem!");
+            } else {
+                alert("Erro ao salvar zona.");
+            }
+        };
+
+        window.excluirZonaFreteAdmin = async function(firestoreId) {
+            if(confirm('Tem certeza que deseja excluir esta zona da nuvem?')) {
+                var sucesso = await window.excluirZonaFreteDaNuvem(firestoreId);
+                if (sucesso) {
+                    window.renderizarZonasFrete();
+                    window.carregarZonasBalcao();
+                    alert("Zona excluída com sucesso!");
+                } else {
+                    alert("Erro ao excluir zona.");
+                }
+            }
+        };
+
+        window.renderizarZonasFrete = async function() {
+            var container = document.getElementById('lista-zonas-frete'); 
+            if (!container) return;
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.9rem;">Carregando zonas...</p>';
+            var zonas = await window.obterZonasFreteDaNuvem();
+            container.innerHTML = '';
+            if(zonas.length === 0) { container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.9rem;">Nenhuma zona cadastrada.</p>'; return; }
+            zonas.forEach(function(z) {
+                container.innerHTML += '<div style="background: white; border: 1px solid #ccc; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">' +
+                    '<div><strong style="color: var(--chocolate); font-size: 0.95rem;">' + z.nome + '</strong><br><span style="color: var(--pink); font-weight: bold; font-size: 0.9rem;">R$ ' + Number(z.taxa).toFixed(2) + '</span></div>' +
+                    '<div style="display: flex; gap: 5px;">' +
+                        '<button onclick="excluirZonaFreteAdmin(\'' + z.firestoreId + '\')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>' +
+                    '</div>' +
+                '</div>';
+            });
+        };
+
+        // RELATÓRIO DE VENDAS (NUVEM)
+        window.abrirRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'flex'; window.mudarAbaRelatorio('mesas', document.querySelector('.rel-tab-btn')); };
+        window.fecharRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'none'; };
+        window.mudarAbaRelatorio = function(tipo, btn) { abaRelatorioAtual = tipo; var botoes = document.querySelectorAll('#modal-relatorio-vendas .rel-tab-btn'); for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active'); if(btn) btn.classList.add('active'); window.renderizarConteudoRelatorio(); };
+        
+        window.renderizarConteudoRelatorio = async function() {
+            var container = document.getElementById('conteudo-relatorio');
+            var totalGeralEl = document.getElementById('relatorio-total-geral');
+            if (!container || !totalGeralEl) return;
+            
+            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 20px;">Carregando dados da nuvem...</p>';
+            var somaTotal = 0;
+
+            if (abaRelatorioAtual === 'mesas') {
+                const snapMesas = await getDocs(collection(db, "vendas_mesas"));
+                let vendasMesasNuvem = [];
+                snapMesas.forEach(d => vendasMesasNuvem.push(d.data()));
+
+                if (vendasMesasNuvem.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda registrada na nuvem.</p>';
+                    totalGeralEl.innerText = '0.00';
+                    return;
+                }
+                container.innerHTML = '';
+                vendasMesasNuvem.slice().reverse().forEach(function(v) {
+                    somaTotal += Number(v.total || 0);
+                    var itensStr = v.itens ? v.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
+                    var atendenteStr = v.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + v.atendente + '</span>' : '';
+                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + v.mesa + '</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Itens: ' + itensStr + '</div>' + atendenteStr + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Pagamento: ' + (v.pagamento || '').toUpperCase() + '</span><span>' + v.data + '</span></div></div>';
+                });
+
+            } else if (abaRelatorioAtual === 'cardapio') {
+                var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
+                var concluidos = vendasCardapio.filter(function(v) { return v.status === 'concluido'; });
+                if (concluidos.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda online concluída na nuvem.</p>';
+                    totalGeralEl.innerText = '0.00';
+                    return;
+                }
+                container.innerHTML = '';
+                concluidos.slice().reverse().forEach(function(vc) {
+                    somaTotal += Number(vc.total || 0);
+                    var itensStr = vc.itens ? vc.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
+                    var tipoAtendimento = vc.tipoEntrega === 'Entrega (Delivery)' ? '🛵 Delivery (' + (vc.zona || 'Zona') + ')' : '🏪 Retirada na Loja';
+                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink); margin-bottom: 4px;"><span>Cardápio Online</span><span>R$ ' + Number(vc.total).toFixed(2) + '</span></div><div style="font-size: 0.85rem; color: #333; margin-bottom: 2px;"><strong>Cliente:</strong> ' + (vc.cliente || 'Balcão') + '</div><div style="font-size: 0.85rem; color: #2e7d32; font-weight: bold; margin-bottom: 4px;">' + tipoAtendimento + '</div>' + (itensStr ? '<div style="font-size: 0.8rem; color: #555; margin-bottom: 4px;"><strong>Itens:</strong> ' + itensStr + '</div>' : '') + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + vc.formaPagamento + '</span><span>' + vc.data + '</span></div></div>';
+                });
+
+            } else if (abaRelatorioAtual === 'encomendas') {
+                var encNuvem = await window.obterEncomendasDaNuvem();
+                if (encNuvem.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda na nuvem.</p>';
+                    totalGeralEl.innerText = '0.00';
+                    return;
+                }
+                container.innerHTML = '';
+                encNuvem.forEach(function(enc) {
+                    somaTotal += Number(enc.total || 0);
+                    var atendenteEnc = enc.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
+                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + enc.opcaoEscolhida + '</span><span>R$ ' + Number(enc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + enc.nomeCliente + ' (' + enc.telefone + ')</div>' + atendenteEnc + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Retirada: ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</span><span>Status: ' + enc.statusPagamento + '</span></div></div>';
+                });
+            }
+            totalGeralEl.innerText = somaTotal.toFixed(2);
+        };
+        // VERIFICAR LEMBRETES DE ENCOMENDA (NUVEM)
+        window.verificarLembretesEncomendas = async function() {
             var banner = document.getElementById('banner-alerta-encomenda');
             var textoBanner = document.getElementById('texto-alerta-encomenda');
             if (!banner || !textoBanner) return;
+
+            var encomendasNuvem = await window.obterEncomendasDaNuvem();
+            if (!encomendasNuvem || encomendasNuvem.length === 0) {
+                banner.style.display = 'none';
+                return;
+            }
 
             var agora = new Date();
             var alertaAtivo = false;
             var mensagemAlerta = "";
 
-            encomendas.forEach(function(enc) {
+            encomendasNuvem.forEach(function(enc) {
                 if (!enc.dataRetirada || !enc.horaRetirada) return;
                 var dataHoraEncStr = enc.dataRetirada + 'T' + enc.horaRetirada + ':00';
                 var dataHoraEnc = new Date(dataHoraEncStr);
@@ -944,136 +1275,408 @@
 
         // Verifica a cada 30 segundos
         setInterval(window.verificarLembretesEncomendas, 30000);
-
-        window.salvarCliente = function(event) {
-            event.preventDefault(); var cpfLimpo = document.getElementById('cli-cpf').value.replace(/\D/g, ''); if(cpfLimpo.length !== 11) return alert("CPF inválido (11 dígitos).");
-            let indexCli = clientesTati.findIndex(c => c.cpf === cpfLimpo);
-            if(indexCli !== -1) return alert("Este CPF já está cadastrado!");
-            clientesTati.push({ id: 'cli_' + Date.now(), nome: document.getElementById('cli-nome').value, cpf: cpfLimpo, whatsapp: document.getElementById('cli-whatsapp').value, pedidos: 0, endereco: document.getElementById('cli-endereco').value, observacoes: document.getElementById('cli-obs').value });
-            clientesTati.sort((a, b) => b.pedidos - a.pedidos); localStorage.setItem('tati_clientes', JSON.stringify(clientesTati));
-            document.getElementById('form-cliente').reset(); window.carregarClientesAdmin(); alert('Cliente cadastrado com sucesso!');
-        };
-        window.carregarClientesAdmin = function() {
-            var container = document.getElementById('lista-clientes-admin'); container.innerHTML = clientesTati.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum cliente cadastrado ainda.</p>' : '';
-            clientesTati.forEach(function(cli) {
-                var telefoneLimpo = cli.whatsapp.replace(/\D/g, ''); if (telefoneLimpo && !telefoneLimpo.startsWith('55')) telefoneLimpo = '55' + telefoneLimpo;
-                var badgePedidos = cli.pedidos > 5 ? '<span style="background: gold; color: #856404; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 8px;">👑 Cliente VIP</span>' : '';
-                container.innerHTML += '<div class="card" style="border-left: 4px solid #2e7d32; margin-bottom: 15px; background: #fafafa; padding: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 8px;"><div><strong style="font-size: 1.1rem; color: #333;">' + cli.nome + '</strong>' + badgePedidos + '</div><a href="https://wa.me/' + telefoneLimpo + '" target="_blank" style="background: #25d366; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; text-decoration: none; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">💬 Chamar no Zap</a></div><p style="margin: 5px 0; font-size: 0.9rem;"><strong>CPF:</strong> ' + cli.cpf + ' | <strong>WhatsApp:</strong> ' + cli.whatsapp + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Endereço:</strong> ' + (cli.endereco || 'Não informado') + '</p><div style="display: flex; justify-content: space-between; align-items: center; background: #e8f5e9; padding: 8px; border-radius: 6px; margin: 8px 0;"><span style="font-size: 0.95rem;"><strong>Total de Pedidos Realizados:</strong> ' + cli.pedidos + '</span><button onclick="somarPedidoCliente(\'' + cli.id + '\')" style="background: #2e7d32; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">+1 Pedido (Balcão/Mesa)</button></div><p style="margin: 5px 0; font-size: 0.9rem; background: #fff8fa; padding: 8px; border-radius: 6px; border: 1px dashed var(--pink);"><strong>📝 Mimos e Observações:</strong><br>' + (cli.observacoes || 'Nenhuma observação.') + '</p><div style="text-align: right; margin-top: 10px;"><button onclick="excluirCliente(\'' + cli.id + '\')" style="background: none; color: #c62828; border: none; cursor: pointer; font-size: 0.85rem; text-decoration: underline;">Remover Cadastro</button></div></div>';
-            });
-        };
-        window.somarPedidoCliente = function(id) { let index = clientesTati.findIndex(c => c.id === id); if(index !== -1) { clientesTati[index].pedidos += 1; clientesTati.sort((a, b) => b.pedidos - a.pedidos); localStorage.setItem('tati_clientes', JSON.stringify(clientesTati)); window.carregarClientesAdmin(); } };
-        window.excluirCliente = function(id) { if (confirm('Remover o cadastro desse cliente?')) { clientesTati = clientesTati.filter(function(c) { return c.id !== id; }); localStorage.setItem('tati_clientes', JSON.stringify(clientesTati)); window.carregarClientesAdmin(); } };
-
-        // GESTÃO DE FUNCIONÁRIOS
-        window.salvarFuncionario = function(event) {
-            event.preventDefault();
-            var cpf = document.getElementById('func-cpf').value.replace(/\D/g, '');
-            if(cpf.length !== 11) return alert("CPF inválido (11 dígitos).");
-            var novoFunc = {
-                id: 'func_' + Date.now(),
-                nome: document.getElementById('func-nome').value,
-                cpf: cpf,
-                telefone: document.getElementById('func-tel').value,
-                funcao: document.getElementById('func-cargo').value,
-                salario: parseFloat(document.getElementById('func-salario').value) || 0,
-                endereco: document.getElementById('func-endereco').value,
-                senha: document.getElementById('func-senha').value.trim(),
-                acessos: {
-                    produtos: document.getElementById('acc-produtos').checked,
-                    encomendas: document.getElementById('acc-encomendas').checked,
-                    pdv: document.getElementById('acc-pdv').checked,
-                    pedidos: document.getElementById('acc-pedidos').checked
-                }
-            };
-            funcionariosTati.push(novoFunc);
-            localStorage.setItem('tati_funcionarios', JSON.stringify(funcionariosTati));
-            document.getElementById('form-funcionario').reset();
-            window.carregarFuncionariosAdmin();
-            alert("Funcionário cadastrado com sucesso!");
-        };
-
-        window.carregarFuncionariosAdmin = function() {
-            var container = document.getElementById('lista-funcionarios-admin');
-            container.innerHTML = funcionariosTati.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum funcionário cadastrado.</p>' : '';
-            funcionariosTati.forEach(function(f) {
-                var acc = f.acessos || {};
-                var permissoesStr = [acc.produtos?'Produtos':'', acc.encomendas?'Encomendas':'', acc.pdv?'PDV':'', acc.pedidos?'Pedidos Online':''].filter(Boolean).join(', ') || 'Nenhuma';
-                container.innerHTML += '<div style="background: white; border: 1px solid #ccc; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;"><div><strong style="color: var(--pink); font-size: 1.05rem;">' + f.nome + '</strong> (' + f.funcao + ')<br><span style="font-size: 0.85rem; color: #555;">Tel: ' + f.telefone + ' | Salário: R$ ' + Number(f.salario).toFixed(2) + '</span><br><span style="font-size: 0.8rem; color: #777;">Acessos permitidos: <strong>' + permissoesStr + '</strong></span><br><span style="font-size: 0.8rem; color: #888;">Senha de acesso: <code style="background:#eee; padding:2px 4px; border-radius:4px;">' + f.senha + '</code></span></div><button onclick="excluirFuncionario(\'' + f.id + '\')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button></div>';
-            });
-        };
-
-        window.excluirFuncionario = function(id) {
-            if(confirm("Tem certeza que deseja remover este funcionário?")) {
-                funcionariosTati = funcionariosTati.filter(f => f.id !== id);
-                localStorage.setItem('tati_funcionarios', JSON.stringify(funcionariosTati));
-                window.carregarFuncionariosAdmin();
-            }
-        };
-
-        window.carregarPDV = function() {
-            var grid = document.getElementById('grid-mesas'); grid.innerHTML = '';
-            Object.keys(mesasState).forEach(function(key) {
-                var m = mesasState[key], totalMesa = 0; for(var i=0; i<m.itens.length; i++) { totalMesa += m.itens[i].preco * m.itens[i].quantidade; }
-                var isOcupado = m.itens.length > 0, bgCor = isOcupado ? '#fff0f3' : '#f1f8e9', bordaCor = isOcupado ? 'var(--pink)' : '#c8e6c9';
-                var textoStatus = isOcupado ? 'R$ ' + Number(totalMesa).toFixed(2) : 'Livre', iconeStatus = isOcupado ? '<span style="color:var(--pink); font-weight:bold;">[OCUPADO]</span>' : '<span style="color:green; font-weight:bold;">[LIVRE]</span>';
-                grid.innerHTML += '<div onclick="abrirModalMesa(\'' + key + '\')" style="background: ' + bgCor + '; border: 2px solid ' + bordaCor + '; border-radius: 10px; padding: 12px; text-align: center; cursor: pointer;"><div style="font-size: 0.75rem; margin-bottom: 5px;">' + iconeStatus + '</div><div style="font-weight: bold; font-size: 1.05rem; margin: 5px 0; color: var(--chocolate);">' + m.nome + '</div><div style="font-size: 0.85rem; color: ' + (isOcupado ? 'var(--pink)' : '#2e7d32') + '; font-weight: bold;">' + textoStatus + '</div></div>';
-            });
-        };
-        window.abrirModalMesa = function(key) { mesaAtualId = key; var m = mesasState[key]; document.getElementById('titulo-modal-mesa').innerText = 'Mesa: ' + m.nome; var selectProd = document.getElementById('select-produto-mesa'); selectProd.innerHTML = ''; if (produtos.length === 0) selectProd.innerHTML = '<option value="">Cadastre produtos primeiro</option>'; else produtos.forEach(function(p) { var precoEfet = (p.promocao && p.preco_promo) ? p.preco_promo : p.price; selectProd.innerHTML += '<option value="' + p.id + '" data-nome="' + p.name + '" data-preco="' + precoEfet + '">' + p.name + ' (R$ ' + Number(precoEfet).toFixed(2) + ')</option>'; }); window.atualizarItensMesaUI(); document.getElementById('modal-mesa').style.display = 'flex'; };
-        window.fecharModalMesa = function() { document.getElementById('modal-mesa').style.display = 'none'; };
-        window.adicionarItemMesa = function() { if (!mesaAtualId) return; var selectProd = document.getElementById('select-produto-mesa'), opt = selectProd.options[selectProd.selectedIndex]; if (!opt || !opt.value) return; var produtoId = opt.value, nomeProd = opt.getAttribute('data-nome'), precoProd = parseFloat(opt.getAttribute('data-preco')), qtd = parseInt(document.getElementById('qtd-produto-mesa').value) || 1; var m = mesasState[mesaAtualId], itemExistente = null; for(var i=0; i<m.itens.length; i++) { if(String(m.itens[i].id) === String(produtoId)) itemExistente = m.itens[i]; } if (itemExistente) itemExistente.quantidade += qtd; else m.itens.push({ id: produtoId, name: nomeProd, preco: precoProd, quantidade: qtd }); localStorage.setItem('tati_mesas', JSON.stringify(mesasState)); window.atualizarItensMesaUI(); window.carregarPDV(); };
-        window.removerItemMesa = function(produtoId) { if (!mesaAtualId) return; var m = mesasState[mesaAtualId]; m.itens = m.itens.filter(function(i) { return String(i.id) !== String(produtoId); }); localStorage.setItem('tati_mesas', JSON.stringify(mesasState)); window.atualizarItensMesaUI(); window.carregarPDV(); };
-        window.atualizarItensMesaUI = function() { if (!mesaAtualId) return; var m = mesasState[mesaAtualId], listaUl = document.getElementById('lista-itens-mesa'), totalEl = document.getElementById('total-valor-mesa'); listaUl.innerHTML = ''; if (m.itens.length === 0) { listaUl.innerHTML = '<p style="color: #888; text-align: center; font-size: 0.85rem; margin: 10px 0;">Nenhum item adicionado.</p>'; totalEl.innerText = '0.00'; return; } var total = 0; m.itens.forEach(function(item) { var sub = item.preco * item.quantidade; total += sub; listaUl.innerHTML += '<li style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.85rem; border-bottom: 1px solid #eee; padding-bottom: 4px;"><span>' + item.quantidade + 'x ' + item.name + '</span><span>R$ ' + Number(sub).toFixed(2) + ' <button onclick="removerItemMesa(\'' + item.id + '\')" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold; margin-left:8px;">X</button></span></li>'; }); totalEl.innerText = Number(total).toFixed(2); };
-        window.salvarEFecharMesa = function() { window.fecharModalMesa(); window.carregarPDV(); };
-        window.abrirCaixaMesa = function() { if (!mesaAtualId) return; var m = mesasState[mesaAtualId]; if (m.itens.length === 0) return alert('Esta mesa não possui itens consumidos!'); window.fecharModalMesa(); document.getElementById('titulo-modal-caixa').innerText = 'Caixa - ' + m.nome; var resumoUl = document.getElementById('resumo-itens-caixa'), subtotal = 0; resumoUl.innerHTML = ''; m.itens.forEach(function(item) { var sub = item.preco * item.quantidade; subtotal += sub; resumoUl.innerHTML += '<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>' + item.quantidade + 'x ' + item.name + '</span><span>R$ ' + Number(sub).toFixed(2) + '</span></div>'; }); document.getElementById('caixa-subtotal').innerText = Number(subtotal).toFixed(2); document.getElementById('caixa-desconto').value = 0; document.getElementById('caixa-pagamento').value = 'pix'; document.getElementById('campos-dinheiro').style.display = 'none'; document.getElementById('caixa-valor-recebido').value = ''; document.getElementById('caixa-troco').innerText = '0.00'; window.calcularTotalCaixa(); document.getElementById('modal-caixa').style.display = 'flex'; };
-        window.fecharModalCaixa = function() { document.getElementById('modal-caixa').style.display = 'none'; };
-        window.mudarFormaPagamentoCaixa = function() { var forma = document.getElementById('caixa-pagamento').value, camposDinheiro = document.getElementById('campos-dinheiro'); if (forma === 'dinheiro') { camposDinheiro.style.display = 'block'; document.getElementById('caixa-valor-recebido').focus(); } else { camposDinheiro.style.display = 'none'; } };
-        window.calcularTotalCaixa = function() { var subtotal = parseFloat(document.getElementById('caixa-subtotal').innerText) || 0, descontoPercent = parseFloat(document.getElementById('caixa-desconto').value) || 0, valorDesconto = (subtotal * descontoPercent) / 100, totalFinal = subtotal - valorDesconto; if (totalFinal < 0) totalFinal = 0; document.getElementById('caixa-total-final').innerText = Number(totalFinal).toFixed(2); window.calcularTroco(); };
-        window.calcularTroco = function() { var totalFinal = parseFloat(document.getElementById('caixa-total-final').innerText) || 0, valorRecebido = parseFloat(document.getElementById('caixa-valor-recebido').value) || 0, troco = valorRecebido - totalFinal; document.getElementById('caixa-troco').innerText = troco >= 0 ? Number(troco).toFixed(2) : '0.00'; };
         
-        window.concluirPagamentoCaixa = function() {
-            if (!mesaAtualId) return; var formaPagto = document.getElementById('caixa-pagamento').value, totalFinal = parseFloat(document.getElementById('caixa-total-final').innerText) || 0, subtotal = parseFloat(document.getElementById('caixa-subtotal').innerText) || 0, desconto = parseFloat(document.getElementById('caixa-desconto').value) || 0, valorRecebido = parseFloat(document.getElementById('caixa-valor-recebido').value) || 0, troco = parseFloat(document.getElementById('caixa-troco').innerText) || 0;
-            if (formaPagto === 'dinheiro' && valorRecebido < totalFinal) return alert('O valor recebido é menor que o total a pagar!');
-            var m = mesasState[mesaAtualId]; 
-            
-            ultimaVenda = { 
-                id: Date.now(), 
-                data: new Date().toLocaleString(), 
-                mesa: m.nome, 
-                itens: m.itens.slice(), 
-                subtotal: subtotal, 
-                desconto: desconto, 
-                total: totalFinal, 
-                pagamento: formaPagto, 
-                recebido: valorRecebido, 
-                troco: troco,
-                atendente: usuarioLogado ? usuarioLogado.nome : 'Mestre (Tati)'
-            };
+window.salvarCliente = async function(event) {
+    event.preventDefault(); 
+    var cpfInput = document.getElementById('cli-cpf');
+    var nomeInput = document.getElementById('cli-nome'); 
+    var whatsInput = document.getElementById('cli-whatsapp') || document.getElementById('cli-fone');
+    
+    var cpfLimpo = cpfInput ? cpfInput.value.trim() : '';
+    var nome = nomeInput ? nomeInput.value.trim() : 'Cliente';
+    var whatsapp = whatsInput ? whatsInput.value.trim() : '';
 
-            vendasMesas.push(ultimaVenda); localStorage.setItem('tati_vendas_mesas', JSON.stringify(vendasMesas)); m.itens = []; localStorage.setItem('tati_mesas', JSON.stringify(mesasState));
-            window.fecharModalCaixa(); window.carregarPDV(); document.getElementById('input-zap-cliente').value = ''; document.getElementById('modal-recibo').style.display = 'flex';
-        };
+    if (!nome) return alert("Preencha o nome do cliente!");
 
-        window.fecharModalRecibo = function() { document.getElementById('modal-recibo').style.display = 'none'; ultimaVenda = null; };
-        window.enviarComprovanteWhatsApp = function() {
-            if (!ultimaVenda) return; var inputTel = document.getElementById('input-zap-cliente').value; if (!inputTel) return alert('Digite o número do WhatsApp!');
-            var telefoneLimpo = inputTel.replace(/\D/g, ''); if (telefoneLimpo.length < 10) return alert('Número inválido!'); if (!telefoneLimpo.startsWith('55')) telefoneLimpo = '55' + telefoneLimpo;
-            var v = ultimaVenda, msg = "*COMPROVANTE DE CONSUMO - Tati Amor Doce*\nMesa: " + v.mesa + "\n----------------------------\n";
-            v.itens.forEach(function(i) { msg += "• " + i.quantidade + "x " + i.name + " (R$ " + Number(i.preco * i.quantidade).toFixed(2) + ")\n"; });
-            msg += "----------------------------\nSubtotal: R$ " + Number(v.subtotal).toFixed(2) + "\n"; if(v.desconto > 0) msg += "Desconto: " + v.desconto + "%\n"; msg += "*Total Pago: R$ " + Number(v.total).toFixed(2) + "*\nForma de Pagto: " + v.pagamento.toUpperCase() + "\n";
-            if(v.pagamento === 'dinheiro') { msg += "Recebido: R$ " + Number(v.recebido).toFixed(2) + "\nTroco: R$ " + Number(v.troco).toFixed(2) + "\n"; } msg += "\nObrigado pela preferência!";
-            window.open("https://wa.me/" + telefoneLimpo + "?text=" + encodeURIComponent(msg), '_blank');
-        };
-        window.imprimirComprovantePDF = function() {
-            if (!ultimaVenda) return; var v = ultimaVenda, htmlRecibo = '<div style="text-align: center;"><h2 style="color: #d81b60; margin: 0 0 2px 0; font-size: 16px;">Tati Amor Doce</h2><p style="font-size: 10px; margin: 0 0 5px 0;">R. São Geraldo - Centro, Bom Jesus dos Perdões</p><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><p style="font-weight: bold; margin: 4px 0; font-size: 13px;">' + v.mesa + '</p><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><div style="text-align: left; font-size: 11px;">';
-            v.itens.forEach(function(i) { htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-bottom: 3px;"><span>' + i.quantidade + 'x ' + i.name + '</span><span>R$ ' + Number(i.preco * i.quantidade).toFixed(2) + '</span></div>'; });
-            htmlRecibo += '</div><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px;"><span>Subtotal:</span><span>R$ ' + Number(v.subtotal).toFixed(2) + '</span></div>';
-            if(v.desconto > 0) htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px;"><span>Desconto:</span><span>' + v.desconto + '%</span></div>';
-            htmlRecibo += '<div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; font-size: 13px;"><span>TOTAL:</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="display: flex; justify-content: space-between; margin-top: 3px; font-size: 11px;"><span>Pagamento:</span><span>' + v.pagamento.toUpperCase() + '</span></div>';
-            if(v.pagamento === 'dinheiro') { htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px;"><span>Recebido:</span><span>R$ ' + Number(v.recebido).toFixed(2) + '</span></div><div style="display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px;"><span>Troco:</span><span>R$ ' + Number(v.troco).toFixed(2) + '</span></div>'; }
-            htmlRecibo += '<div style="border-top: 1px dashed #000; margin: 5px 0;"></div><p style="font-size: 10px; text-align: center; margin: 5px 0 0 0;">Obrigado pela preferência!<br>Volte sempre!</p></div>';
-            document.getElementById('area-impressao').innerHTML = htmlRecibo; window.print();
-        };
+    var novoCliente = {
+        id: 'cli_' + Date.now(),
+        cpf: cpfLimpo,
+        nome: nome,
+        whatsapp: whatsapp,
+        pedidos: 0,
+        criadoEm: new Date().toLocaleString()
+    };
+
+    var sucesso = await window.salvarClienteNaNuvem(novoCliente);
+    if (sucesso) {
+        var formEl = document.getElementById('form-cliente');
+        if (formEl) formEl.reset();
+        alert("Cliente cadastrado na nuvem com sucesso!");
+        if (typeof window.carregarClientesAdmin === 'function') {
+            window.carregarClientesAdmin();
+        }
+    } else {
+        alert("Erro ao cadastrar cliente na nuvem.");
+    }
+};
+
+window.carregarClientesAdmin = async function() {
+    var container = document.getElementById('lista-clientes-admin');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="padding: 10px;">Carregando clientes da nuvem...</p>';
+    var clientesNuvem = await window.obterClientesDaNuvem();
+    container.innerHTML = '';
+
+    if (clientesNuvem.length === 0) {
+        container.innerHTML = '<p style="color: #888; padding: 10px;">Nenhum cliente cadastrado na nuvem.</p>';
+        return;
+    }
+
+    clientesNuvem.forEach(function(cli) {
+        var telefoneLimpo = (cli.whatsapp || cli.telefone || '').replace(/\D/g, '');
+        var badgePedidos = (cli.pedidos || 0) > 5 ? '<span style="background: gold; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 5px;">VIP</span>' : '';
+        
+        container.innerHTML += `
+            <div class="card" style="border-left: 4px solid var(--pink-primary, #d63384); background: #fff; padding: 12px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>${cli.nome}</strong> ${badgePedidos}<br>
+                    <small style="color: #666;">CPF: ${cli.cpf || 'Não informado'} | Tel: ${telefoneLimpo || cli.whatsapp || 'N/A'} | Pedidos: ${cli.pedidos || 0}</small>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="somarPedidoCliente('${cli.firestoreId}', ${cli.pedidos || 0})" style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Adicionar Pedido">+ Pedido</button>
+                    <button onclick="excluirCliente('${cli.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Excluir">Excluir</button>
+                </div>
+            </div>
+        `;
+    });
+};
+
+window.somarPedidoCliente = async function(firestoreId, pedidosAtuais) {
+    var novoTotal = (pedidosAtuais || 0) + 1;
+    var sucesso = await window.atualizarClienteNaNuvem(firestoreId, { pedidos: novoTotal });
+    if (sucesso) {
+        window.carregarClientesAdmin();
+    } else {
+        alert("Erro ao atualizar os pedidos do cliente.");
+    }
+};
+
+window.excluirCliente = async function(firestoreId) {
+    if (!confirm('Remover o cadastro desse cliente da nuvem?')) return;
+    var sucesso = await window.excluirClienteDaNuvem(firestoreId);
+    if (sucesso) {
+        alert("Cliente removido com sucesso!");
+        window.carregarClientesAdmin();
+    } else {
+        alert("Erro ao excluir o cliente.");
+    }
+};
+
+// GESTÃO DE FUNCIONÁRIOS (NUVEM)
+window.salvarFuncionario = async function(event) {
+    event.preventDefault();
+    var cpfInput = document.getElementById('func-cpf');
+    if (!cpfInput) return;
+    
+    var cpf = cpfInput.value.replace(/\D/g, '');
+    if(cpf.length !== 11) return alert("CPF inválido (11 dígitos).");
+    
+    var novoFunc = {
+        id: 'func_' + Date.now(),
+        nome: document.getElementById('func-nome').value,
+        cpf: cpf,
+        telefone: document.getElementById('func-tel').value,
+        funcao: document.getElementById('func-cargo').value,
+        salario: parseFloat(document.getElementById('func-salario').value) || 0,
+        endereco: document.getElementById('func-endereco').value,
+        senha: document.getElementById('func-senha').value.trim(),
+        acessos: {
+            produtos: document.getElementById('acc-produtos').checked,
+            encomendas: document.getElementById('acc-encomendas').checked,
+            pdv: document.getElementById('acc-pdv').checked,
+            pedidos: document.getElementById('acc-pedidos').checked
+        }
+    };
+
+    var sucesso = await window.salvarFuncionarioNaNuvem(novoFunc);
+    if (sucesso) {
+        var formEl = document.getElementById('form-funcionario');
+        if (formEl) formEl.reset();
+        alert("Funcionário cadastrado na nuvem com sucesso!");
+        if (typeof window.carregarFuncionariosAdmin === 'function') {
+            window.carregarFuncionariosAdmin();
+        }
+    } else {
+        alert("Erro ao cadastrar funcionário na nuvem.");
+    }
+};
+
+window.carregarFuncionariosAdmin = async function() {
+    var container = document.getElementById('lista-funcionarios-admin');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="color: #666; text-align: center; padding: 10px;">Carregando funcionários da nuvem...</p>';
+    var funcionariosNuvem = await window.obterFuncionariosDaNuvem();
+    container.innerHTML = funcionariosNuvem.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum funcionário cadastrado na nuvem.</p>' : '';
+    
+    funcionariosNuvem.forEach(function(f) {
+        var acc = f.acessos || {};
+        var permissoesStr = [acc.produtos?'Produtos':'', acc.encomendas?'Encomendas':'', acc.pdv?'PDV':'', acc.pedidos?'Pedidos Online':''].filter(Boolean).join(', ') || 'Nenhuma';
+        
+        container.innerHTML += `
+            <div style="background: white; border: 1px solid #ccc; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="color: var(--pink); font-size: 1.05rem;">${f.nome}</strong> (${f.funcao})<br>
+                    <span style="font-size: 0.85rem; color: #555;">Tel: ${f.telefone} | Salário: R$ ${Number(f.salario).toFixed(2)}</span><br>
+                    <span style="font-size: 0.8rem; color: #777;">Acessos permitidos: <strong>${permissoesStr}</strong></span><br>
+                    <span style="font-size: 0.8rem; color: #888;">Senha de acesso: <code style="background:#eee; padding:2px 4px; border-radius:4px;">${f.senha}</code></span>
+                </div>
+                <button onclick="excluirFuncionario('${f.firestoreId}')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>
+            </div>
+        `;
+    });
+};
+
+window.excluirFuncionario = async function(firestoreId) {
+    if(confirm("Tem certeza que deseja remover este funcionário da nuvem?")) {
+        var sucesso = await window.excluirFuncionarioDaNuvem(firestoreId);
+        if (sucesso) {
+            alert("Funcionário removido com sucesso!");
+            window.carregarFuncionariosAdmin();
+        } else {
+            alert("Erro ao excluir o funcionário.");
+        }
+    }
+};
+
+// Variável de estado global para as mesas e última venda
+var mesasState = {};
+var ultimaVenda = null;
+var mesaAtualId = null;
+
+// Carregar PDV integrado com a Nuvem
+window.carregarPDV = async function() {
+    var grid = document.getElementById('grid-mesas');
+    if (!grid) return;
+    grid.innerHTML = '<p style="padding: 10px;">Carregando mesas da nuvem...</p>';
+    
+    mesasState = await window.obterMesasDaNuvem();
+    grid.innerHTML = '';
+
+    Object.keys(mesasState).forEach(function(key) {
+        var m = mesasState[key], totalMesa = 0; 
+        if (m.itens && m.itens.length > 0) {
+            for(var i=0; i<m.itens.length; i++) { 
+                totalMesa += m.itens[i].preco * m.itens[i].quantidade; 
+            }
+        } else {
+            m.itens = [];
+        }
+
+        var isOcupado = m.itens.length > 0, bgCor = isOcupado ? '#fff0f3' : '#f1f8e9', bordaCor = isOcupado ? 'var(--pink)' : '#c8e6c9';
+        var textoStatus = isOcupado ? 'R$ ' + Number(totalMesa).toFixed(2) : 'Livre';
+        var iconeStatus = isOcupado ? '<span style="color:var(--pink); font-weight:bold;">[OCUPADO]</span>' : '<span style="color:green; font-weight:bold;">[LIVRE]</span>';
+        
+        grid.innerHTML += '<div onclick="abrirModalMesa(\'' + key + '\')" style="background: ' + bgCor + '; border: 2px solid ' + bordaCor + '; border-radius: 10px; padding: 12px; text-align: center; cursor: pointer;"><div style="font-size: 0.75rem; margin-bottom: 5px;">' + iconeStatus + '</div><div style="font-weight: bold; font-size: 1.05rem; margin: 5px 0; color: var(--chocolate);">' + m.nome + '</div><div style="font-size: 0.85rem; color: ' + (isOcupado ? 'var(--pink)' : '#2e7d32') + '; font-weight: bold;">' + textoStatus + '</div></div>';
+    });
+};
+
+window.abrirModalMesa = async function(key) { 
+    mesaAtualId = key; 
+    var m = mesasState[key]; 
+    document.getElementById('titulo-modal-mesa').innerText = 'Mesa: ' + m.nome; 
+    
+    var selectProd = document.getElementById('select-produto-mesa'); 
+    selectProd.innerHTML = ''; 
+    
+    // Pega os produtos diretamente da nuvem para preencher o select
+    var produtosNuvem = await window.obterProdutosDaNuvem();
+    if (produtosNuvem.length === 0) {
+        selectProd.innerHTML = '<option value="">Cadastre produtos primeiro</option>';
+    } else {
+        produtosNuvem.forEach(function(p) { 
+            var precoEfet = (p.promocao && p.preco_promo) ? p.preco_promo : (p.preco || p.price || 0); 
+            selectProd.innerHTML += '<option value="' + (p.firestoreId || p.id) + '" data-nome="' + (p.nome || p.name) + '" data-preco="' + precoEfet + '">' + (p.nome || p.name) + ' (R$ ' + Number(precoEfet).toFixed(2) + ')</option>'; 
+        });
+    }
+    window.atualizarItensMesaUI(); 
+    document.getElementById('modal-mesa').style.display = 'flex'; 
+};
+
+window.fecharModalMesa = function() { 
+    document.getElementById('modal-mesa').style.display = 'none'; 
+};
+
+window.adicionarItemMesa = async function() { 
+    if (!mesaAtualId) return; 
+    var selectProd = document.getElementById('select-produto-mesa'), opt = selectProd.options[selectProd.selectedIndex]; 
+    if (!opt || !opt.value) return; 
+    
+    var produtoId = opt.value, nomeProd = opt.getAttribute('data-nome'), precoProd = parseFloat(opt.getAttribute('data-preco')), qtd = parseInt(document.getElementById('qtd-produto-mesa').value) || 1; 
+    var m = mesasState[mesaAtualId], itemExistente = null; 
+    
+    for(var i=0; i<m.itens.length; i++) { 
+        if(String(m.itens[i].id) === String(produtoId)) itemExistente = m.itens[i]; 
+    } 
+    if (itemExistente) itemExistente.quantidade += qtd; 
+    else m.itens.push({ id: produtoId, name: nomeProd, preco: precoProd, quantidade: qtd }); 
+    
+    await window.salvarMesaNaNuvenState(mesasState);
+    window.atualizarItensMesaUI(); 
+    window.carregarPDV(); 
+};
+
+window.removerItemMesa = async function(produtoId) { 
+    if (!mesaAtualId) return; 
+    var m = mesasState[mesaAtualId]; 
+    m.itens = m.itens.filter(function(i) { return String(i.id) !== String(produtoId); }); 
+    
+    await window.salvarMesaNaNuvenState(mesasState);
+    window.atualizarItensMesaUI(); 
+    window.carregarPDV(); 
+};
+
+window.atualizarItensMesaUI = function() { 
+    if (!mesaAtualId) return; 
+    var m = mesasState[mesaAtualId], listaUl = document.getElementById('lista-itens-mesa'), totalEl = document.getElementById('total-valor-mesa'); 
+    listaUl.innerHTML = ''; 
+    if (m.itens.length === 0) { 
+        listaUl.innerHTML = '<p style="color: #888; text-align: center; font-size: 0.85rem; margin: 10px 0;">Nenhum item adicionado.</p>'; 
+        totalEl.innerText = '0.00'; 
+        return; 
+    } 
+    var total = 0; 
+    m.itens.forEach(function(item) { 
+        var sub = item.preco * item.quantidade; 
+        total += sub; 
+        listaUl.innerHTML += '<li style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.85rem; border-bottom: 1px solid #eee; padding-bottom: 4px;"><span>' + item.quantidade + 'x ' + item.name + '</span><span>R$ ' + Number(sub).toFixed(2) + ' <button onclick="removerItemMesa(\'' + item.id + '\')" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold; margin-left:8px;">X</button></span></li>'; 
+    }); 
+    totalEl.innerText = Number(total).toFixed(2); 
+};
+
+window.salvarEFecharMesa = function() { 
+    window.fecharModalMesa(); 
+    window.carregarPDV(); 
+};
+
+window.abrirCaixaMesa = function() { 
+    if (!mesaAtualId) return; 
+    var m = mesasState[mesaAtualId]; 
+    if (m.itens.length === 0) return alert('Esta mesa não possui itens consumidos!'); 
+    window.fecharModalMesa(); 
+    document.getElementById('titulo-modal-caixa').innerText = 'Caixa - ' + m.nome; 
+    
+    var resumoUl = document.getElementById('resumo-itens-caixa'), subtotal = 0; 
+    resumoUl.innerHTML = ''; 
+    m.itens.forEach(function(item) { 
+        var sub = item.preco * item.quantidade; 
+        subtotal += sub; 
+        resumoUl.innerHTML += '<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>' + item.quantidade + 'x ' + item.name + '</span><span>R$ ' + Number(sub).toFixed(2) + '</span></div>'; 
+    }); 
+    
+    document.getElementById('caixa-subtotal').innerText = Number(subtotal).toFixed(2); 
+    document.getElementById('caixa-desconto').value = 0; 
+    document.getElementById('caixa-pagamento').value = 'pix'; 
+    document.getElementById('campos-dinheiro').style.display = 'none'; 
+    document.getElementById('caixa-valor-recebido').value = ''; 
+    document.getElementById('caixa-troco').innerText = '0.00'; 
+    window.calcularTotalCaixa(); 
+    document.getElementById('modal-caixa').style.display = 'flex'; 
+};
+
+window.fecharModalCaixa = function() { 
+    document.getElementById('modal-caixa').style.display = 'none'; 
+};
+
+window.mudarFormaPagamentoCaixa = function() { 
+    var forma = document.getElementById('caixa-pagamento').value, camposDinheiro = document.getElementById('campos-dinheiro'); 
+    if (forma === 'dinheiro') { 
+        camposDinheiro.style.display = 'block'; 
+        document.getElementById('caixa-valor-recebido').focus(); 
+    } else { 
+        camposDinheiro.style.display = 'none'; 
+    } 
+};
+
+window.calcularTotalCaixa = function() { 
+    var subtotal = parseFloat(document.getElementById('caixa-subtotal').innerText) || 0, descontoPercent = parseFloat(document.getElementById('caixa-desconto').value) || 0, valorDesconto = (subtotal * descontoPercent) / 100, totalFinal = subtotal - valorDesconto; 
+    if (totalFinal < 0) totalFinal = 0; 
+    document.getElementById('caixa-total-final').innerText = Number(totalFinal).toFixed(2); 
+    window.calcularTroco(); 
+};
+
+window.calcularTroco = function() { 
+    var totalFinal = parseFloat(document.getElementById('caixa-total-final').innerText) || 0, valorRecebido = parseFloat(document.getElementById('caixa-valor-recebido').value) || 0, troco = valorRecebido - totalFinal; 
+    document.getElementById('caixa-troco').innerText = troco >= 0 ? Number(troco).toFixed(2) : '0.00'; 
+};
+
+window.concluirPagamentoCaixa = async function() {
+    if (!mesaAtualId) return; 
+    var formaPagto = document.getElementById('caixa-pagamento').value, totalFinal = parseFloat(document.getElementById('caixa-total-final').innerText) || 0, subtotal = parseFloat(document.getElementById('caixa-subtotal').innerText) || 0, desconto = parseFloat(document.getElementById('caixa-desconto').value) || 0, valorRecebido = parseFloat(document.getElementById('caixa-valor-recebido').value) || 0, troco = parseFloat(document.getElementById('caixa-troco').innerText) || 0;
+    
+    if (formaPagto === 'dinheiro' && valorRecebido < totalFinal) return alert('O valor recebido é menor que o total a pagar!');
+    
+    var m = mesasState[mesaAtualId]; 
+    
+    ultimaVenda = { 
+        id: Date.now(), 
+        data: new Date().toLocaleString(), 
+        mesa: m.nome, 
+        itens: m.itens.slice(), 
+        subtotal: subtotal, 
+        desconto: desconto, 
+        total: totalFinal, 
+        pagamento: formaPagto, 
+        recebido: valorRecebido, 
+        troco: troco,
+        atendente: 'Mestre (Tati)'
+    };
+
+    // Salva a venda e limpa a mesa na nuvem
+    await window.salvarVendaNaNuvem(ultimaVenda);
+    m.itens = []; 
+    await window.salvarMesaNaNuvenState(mesasState);
+    
+    window.fecharModalCaixa(); 
+    window.carregarPDV(); 
+    
+    var inputZap = document.getElementById('input-zap-cliente');
+    if (inputZap) inputZap.value = ''; 
+    
+    var modalRecibo = document.getElementById('modal-recibo');
+    if (modalRecibo) modalRecibo.style.display = 'flex';
+};
+
+window.fecharModalRecibo = function() { 
+    var modalRecibo = document.getElementById('modal-recibo');
+    if (modalRecibo) modalRecibo.style.display = 'none'; 
+    ultimaVenda = null; 
+};
+
+window.enviarComprovanteWhatsApp = function() {
+    if (!ultimaVenda) return; 
+    var inputTel = document.getElementById('input-zap-cliente').value; 
+    if (!inputTel) return alert('Digite o número do WhatsApp!');
+    var telefoneLimpo = inputTel.replace(/\D/g, ''); 
+    if (telefoneLimpo.length < 10) return alert('Número inválido!'); 
+    if (!telefoneLimpo.startsWith('55')) telefoneLimpo = '55' + telefoneLimpo;
+    
+    var v = ultimaVenda, msg = "*COMPROVANTE DE CONSUMO - Tati Amor Doce*\nMesa: " + v.mesa + "\n----------------------------\n";
+    v.itens.forEach(function(i) { msg += "• " + i.quantidade + "x " + i.name + " (R$ " + Number(i.preco * i.quantidade).toFixed(2) + ")\n"; });
+    msg += "----------------------------\nSubtotal: R$ " + Number(v.subtotal).toFixed(2) + "\n"; 
+    if(v.desconto > 0) msg += "Desconto: " + v.desconto + "%\n"; 
+    msg += "*Total Pago: R$ " + Number(v.total).toFixed(2) + "*\nForma de Pagto: " + v.pagamento.toUpperCase() + "\n";
+    if(v.pagamento === 'dinheiro') { msg += "Recebido: R$ " + Number(v.recebido).toFixed(2) + "\nTroco: R$ " + Number(v.troco).toFixed(2) + "\n"; } 
+    msg += "\nObrigado pela preferência!";
+    
+    window.open("https://wa.me/" + telefoneLimpo + "?text=" + encodeURIComponent(msg), '_blank');
+};
+
+window.imprimirComprovantePDF = function() {
+    if (!ultimaVenda) return; 
+    var v = ultimaVenda, htmlRecibo = '<div style="text-align: center;"><h2 style="color: #d81b60; margin: 0 0 2px 0; font-size: 16px;">Tati Amor Doce</h2><p style="font-size: 10px; margin: 0 0 5px 0;">R. São Geraldo - Centro, Bom Jesus dos Perdões</p><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><p style="font-weight: bold; margin: 4px 0; font-size: 13px;">' + v.mesa + '</p><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><div style="text-align: left; font-size: 11px;">';
+    v.itens.forEach(function(i) { htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-bottom: 3px;"><span>' + i.quantidade + 'x ' + i.name + '</span><span>R$ ' + Number(i.preco * i.quantidade).toFixed(2) + '</span></div>'; });
+    htmlRecibo += '</div><div style="border-top: 1px dashed #000; margin: 5px 0;"></div><div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px;"><span>Subtotal:</span><span>R$ ' + Number(v.subtotal).toFixed(2) + '</span></div>';
+    if(v.desconto > 0) htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px;"><span>Desconto:</span><span>' + v.desconto + '%</span></div>';
+    htmlRecibo += '<div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; font-size: 13px;"><span>TOTAL:</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="display: flex; justify-content: space-between; margin-top: 3px; font-size: 11px;"><span>Pagamento:</span><span>' + v.pagamento.toUpperCase() + '</span></div>';
+    if(v.pagamento === 'dinheiro') { htmlRecibo += '<div style="display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px;"><span>Recebido:</span><span>R$ ' + Number(v.recebido).toFixed(2) + '</span></div><div style="display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px;"><span>Troco:</span><span>R$ ' + Number(v.troco).toFixed(2) + '</span></div>'; }
+    htmlRecibo += '<div style="border-top: 1px dashed #000; margin: 5px 0;"></div><p style="font-size: 10px; text-align: center; margin: 5px 0 0 0;">Obrigado pela preferência!<br>Volte sempre!</p></div>';
+    
+    var areaImp = document.getElementById('area-impressao');
+    if (areaImp) areaImp.innerHTML = htmlRecibo; 
+    window.print();
+};
 
         window.abrirZonasFrete = function() { document.getElementById('modal-zonas-frete').style.display = 'flex'; window.renderizarZonasFrete(); };
         window.fecharZonasFrete = function() { document.getElementById('modal-zonas-frete').style.display = 'none'; };
@@ -1133,36 +1736,65 @@
         window.fecharRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'none'; };
         window.mudarAbaRelatorio = function(tipo, btn) { abaRelatorioAtual = tipo; var botoes = document.querySelectorAll('#modal-relatorio-vendas .rel-tab-btn'); for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active'); if(btn) btn.classList.add('active'); window.renderizarConteudoRelatorio(); };
         
-        window.renderizarConteudoRelatorio = function() {
-            var container = document.getElementById('conteudo-relatorio'), totalGeralEl = document.getElementById('relatorio-total-geral'); container.innerHTML = ''; var somaTotal = 0;
-            if (abaRelatorioAtual === 'mesas') {
-                if (vendasMesas.length === 0) { container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda registrada.</p>'; totalGeralEl.innerText = '0.00'; return; }
-                vendasMesas.slice().reverse().forEach(function(v) {
-                    somaTotal += v.total;
-                    var itensStr = v.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ');
-                    var atendenteStr = v.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + v.atendente + '</span>' : '';
-                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + v.mesa + '</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Itens: ' + itensStr + '</div>' + atendenteStr + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Pagamento: ' + v.pagamento.toUpperCase() + '</span><span>' + v.data + '</span></div></div>';
-                });
-            } else if (abaRelatorioAtual === 'cardapio') {
-                var vendasCardapio = []; try { vendasCardapio = JSON.parse(localStorage.getItem('tati_vendas_cardapio')) || []; } catch(e) { vendasCardapio = []; }
-                var concluidos = vendasCardapio.filter(function(v) { return v.status === 'concluido'; });
-                if (concluidos.length === 0) { container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda online concluída.</p>'; totalGeralEl.innerText = '0.00'; return; }
-                concluidos.slice().reverse().forEach(function(vc) {
-                    somaTotal += vc.total;
-                    var itensStr = vc.itens ? vc.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
-                    var tipoAtendimento = vc.tipoEntrega === 'Entrega (Delivery)' ? '🛵 Delivery (' + (vc.zona || 'Zona') + ')' : '🏪 Retirada na Loja';
-                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink); margin-bottom: 4px;"><span>Cardápio Online</span><span>R$ ' + Number(vc.total).toFixed(2) + '</span></div><div style="font-size: 0.85rem; color: #333; margin-bottom: 2px;"><strong>Cliente:</strong> ' + (vc.cliente || 'Balcão') + '</div><div style="font-size: 0.85rem; color: #2e7d32; font-weight: bold; margin-bottom: 4px;">' + tipoAtendimento + '</div>' + (itensStr ? '<div style="font-size: 0.8rem; color: #555; margin-bottom: 4px;"><strong>Itens:</strong> ' + itensStr + '</div>' : '') + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + vc.formaPagamento + '</span><span>' + vc.data + '</span></div></div>';
-                });
-            } else if (abaRelatorioAtual === 'encomendas') {
-                if (encomendas.length === 0) { container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda.</p>'; totalGeralEl.innerText = '0.00'; return; }
-                encomendas.forEach(function(enc) {
-                    somaTotal += Number(enc.total || 0);
-                    var atendenteEnc = enc.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
-                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + enc.opcaoEscolhida + '</span><span>R$ ' + Number(enc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + enc.nomeCliente + ' (' + enc.telefone + ')</div>' + atendenteEnc + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Retirada: ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</span><span>Status: ' + enc.statusPagamento + '</span></div></div>';
-                });
-            }
-            totalGeralEl.innerText = somaTotal.toFixed(2);
-        };
+window.renderizarConteudoRelatorio = async function() {
+    var container = document.getElementById('conteudo-relatorio');
+    var totalGeralEl = document.getElementById('relatorio-total-geral');
+    if (!container || !totalGeralEl) return;
+    
+    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 20px;">Carregando dados da nuvem...</p>';
+    var somaTotal = 0;
+
+    if (abaRelatorioAtual === 'mesas') {
+        // Busca vendas de mesas da nuvem
+        const snapMesas = await getDocs(collection(db, "vendas_mesas"));
+        let vendasMesasNuvem = [];
+        snapMesas.forEach(d => vendasMesasNuvem.push(d.data()));
+
+        if (vendasMesasNuvem.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda registrada na nuvem.</p>';
+            totalGeralEl.innerText = '0.00';
+            return;
+        }
+        container.innerHTML = '';
+        vendasMesasNuvem.slice().reverse().forEach(function(v) {
+            somaTotal += Number(v.total || 0);
+            var itensStr = v.itens ? v.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
+            var atendenteStr = v.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + v.atendente + '</span>' : '';
+            container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + v.mesa + '</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Itens: ' + itensStr + '</div>' + atendenteStr + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Pagamento: ' + (v.pagamento || '').toUpperCase() + '</span><span>' + v.data + '</span></div></div>';
+        });
+
+    } else if (abaRelatorioAtual === 'cardapio') {
+        var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
+        var concluidos = vendasCardapio.filter(function(v) { return v.status === 'concluido'; });
+        if (concluidos.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda online concluída na nuvem.</p>';
+            totalGeralEl.innerText = '0.00';
+            return;
+        }
+        container.innerHTML = '';
+        concluidos.slice().reverse().forEach(function(vc) {
+            somaTotal += Number(vc.total || 0);
+            var itensStr = vc.itens ? vc.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
+            var tipoAtendimento = vc.tipoEntrega === 'Entrega (Delivery)' ? '🛵 Delivery (' + (vc.zona || 'Zona') + ')' : '🏪 Retirada na Loja';
+            container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink); margin-bottom: 4px;"><span>Cardápio Online</span><span>R$ ' + Number(vc.total).toFixed(2) + '</span></div><div style="font-size: 0.85rem; color: #333; margin-bottom: 2px;"><strong>Cliente:</strong> ' + (vc.cliente || 'Balcão') + '</div><div style="font-size: 0.85rem; color: #2e7d32; font-weight: bold; margin-bottom: 4px;">' + tipoAtendimento + '</div>' + (itensStr ? '<div style="font-size: 0.8rem; color: #555; margin-bottom: 4px;"><strong>Itens:</strong> ' + itensStr + '</div>' : '') + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + vc.formaPagamento + '</span><span>' + vc.data + '</span></div></div>';
+        });
+
+    } else if (abaRelatorioAtual === 'encomendas') {
+        var encNuvem = await window.obterEncomendasDaNuvem();
+        if (encNuvem.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda na nuvem.</p>';
+            totalGeralEl.innerText = '0.00';
+            return;
+        }
+        container.innerHTML = '';
+        encNuvem.forEach(function(enc) {
+            somaTotal += Number(enc.total || 0);
+            var atendenteEnc = enc.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
+            container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + enc.opcaoEscolhida + '</span><span>R$ ' + Number(enc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + enc.nomeCliente + ' (' + enc.telefone + ')</div>' + atendenteEnc + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Retirada: ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</span><span>Status: ' + enc.statusPagamento + '</span></div></div>';
+        });
+    }
+    totalGeralEl.innerText = somaTotal.toFixed(2);
+};
 
         window.limparHistoricoRelatorio = function() {
             if (confirm('Deseja realmente limpar o histórico da aba atual?')) {
@@ -1173,73 +1805,73 @@
             }
         };
 
-        var abaPedidosDiariosAtual = 'delivery';
-        window.mudarAbaPedidosDiarios = function(tipo, btn) {
-            abaPedidosDiariosAtual = tipo;
-            var botoes = document.querySelectorAll('#secao-pedidos_online .rel-tab-btn');
-            for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
-            if(btn) btn.classList.add('active');
-            window.renderizarPedidosDiarios();
-        };
+var abaPedidosDiariosAtual = 'delivery';
+window.mudarAbaPedidosDiarios = function(tipo, btn) {
+    abaPedidosDiariosAtual = tipo;
+    var botoes = document.querySelectorAll('#secao-pedidos_online .rel-tab-btn');
+    for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
+    if(btn) btn.classList.add('active');
+    window.renderizarPedidosDiarios();
+};
 
-        window.renderizarPedidosDiarios = function() {
-            var container = document.getElementById('lista-pedidos-diarios');
-            container.innerHTML = '';
-            var vendasCardapio = [];
-            try { vendasCardapio = JSON.parse(localStorage.getItem('tati_vendas_cardapio')) || []; } catch(e) { vendasCardapio = []; }
+window.renderizarPedidosDiarios = async function() {
+    var container = document.getElementById('lista-pedidos-diarios');
+    if (!container) return;
+    container.innerHTML = '<p style="text-align: center; color: #666; padding: 10px;">Carregando pedidos da nuvem...</p>';
+    
+    var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
 
-            var filtroNome = (abaPedidosDiariosAtual === 'delivery') ? 'Entrega (Delivery)' : 'Retirada na Loja';
-            var pedidosFiltrados = vendasCardapio.filter(function(v) { return v.tipoEntrega === filtroNome && v.status !== 'concluido'; });
+    var filtroNome = (abaPedidosDiariosAtual === 'delivery') ? 'Entrega (Delivery)' : 'Retirada na Loja';
+    var pedidosFiltrados = vendasCardapio.filter(function(v) { return v.tipoEntrega === filtroNome && v.status !== 'concluido'; });
 
-            if (pedidosFiltrados.length === 0) {
-                container.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">Nenhum pedido pendente nesta aba.</p>';
-                return;
-            }
+    container.innerHTML = '';
+    if (pedidosFiltrados.length === 0) {
+        container.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">Nenhum pedido pendente nesta aba.</p>';
+        return;
+    }
 
-            pedidosFiltrados.slice().reverse().forEach(function(p) {
-                var itensStr = p.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ');
-                var infoEntrega = '';
-                if (p.tipoEntrega === 'Entrega (Delivery)') {
-                    infoEntrega = `<p style="margin: 5px 0; font-size: 0.9rem;"><strong>📍 Endereço:</strong> ${p.endereco || 'Não informado'} <br><strong>🗺️ Zona:</strong> ${p.zona || 'N/A'}</p>`;
-                }
+    pedidosFiltrados.slice().reverse().forEach(function(p) {
+        var itensStr = p.itens ? p.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
+        var infoEntrega = '';
+        if (p.tipoEntrega === 'Entrega (Delivery)') {
+            infoEntrega = `<p style="margin: 5px 0; font-size: 0.9rem;"><strong>📍 Endereço:</strong> ${p.endereco || 'Não informado'} <br><strong>🗺️ Zona:</strong> ${p.zona || 'N/A'}</p>`;
+        }
 
-                container.innerHTML += '<div style="background: #fff8fa; border: 1px solid var(--pink); padding: 15px; border-radius: 8px; margin-bottom: 10px;">' +
-                    '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
-                        '<strong style="font-size: 1.1rem; color: var(--pink);">' + p.cliente + '</strong>' +
-                        '<span style="font-size: 0.8rem; color: #666;">' + p.data + '</span>' +
-                    '</div>' +
-                    infoEntrega +
-                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Itens:</strong> ' + itensStr + '</p>' +
-                    '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Total:</strong> R$ ' + Number(p.total).toFixed(2) + ' | <strong>Pagamento:</strong> ' + p.formaPagamento + '</p>' +
-                    '<div style="text-align: right; margin-top: 10px;">' +
-                        '<button onclick="marcarPedidoConcluido(' + p.id + ')" style="background: #2e7d32; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Marcar como Preparado / Concluído</button>' +
-                    '</div>' +
-                '</div>';
-            });
-        };
+        container.innerHTML += '<div style="background: #fff8fa; border: 1px solid var(--pink); padding: 15px; border-radius: 8px; margin-bottom: 10px;">' +
+            '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
+                '<strong style="font-size: 1.1rem; color: var(--pink);">' + (p.cliente || 'Cliente') + '</strong>' +
+                '<span style="font-size: 0.8rem; color: #666;">' + (p.data || '') + '</span>' +
+            '</div>' +
+            infoEntrega +
+            '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Itens:</strong> ' + itensStr + '</p>' +
+            '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Total:</strong> R$ ' + Number(p.total || 0).toFixed(2) + ' | <strong>Pagamento:</strong> ' + (p.formaPagamento || '') + '</p>' +
+            '<div style="text-align: right; margin-top: 10px;">' +
+                '<button onclick="marcarPedidoConcluido(\'' + p.firestoreId + '\')" style="background: #2e7d32; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Marcar como Preparado / Concluído</button>' +
+            '</div>' +
+        '</div>';
+    });
+};
 
-        window.marcarPedidoConcluido = function(id) {
-            var vendasCardapio = [];
-            try { vendasCardapio = JSON.parse(localStorage.getItem('tati_vendas_cardapio')) || []; } catch(e) { vendasCardapio = []; }
-            var index = vendasCardapio.findIndex(v => v.id === id);
-            if (index !== -1) {
-                vendasCardapio[index].status = 'concluido';
-                localStorage.setItem('tati_vendas_cardapio', JSON.stringify(vendasCardapio));
-                window.renderizarPedidosDiarios();
-                window.atualizarBadgePedidos();
-            }
-        };
+window.marcarPedidoConcluido = async function(firestoreId) {
+    var sucesso = await window.atualizarStatusPedidoOnlineNaNuvem(firestoreId, 'concluido');
+    if (sucesso) {
+        window.renderizarPedidosDiarios();
+        window.atualizarBadgePedidos();
+    } else {
+        alert("Erro ao atualizar o status do pedido.");
+    }
+};
 
-        window.atualizarBadgePedidos = function() {
-            var vendasCardapio = [];
-            try { vendasCardapio = JSON.parse(localStorage.getItem('tati_vendas_cardapio')) || []; } catch(e) { vendasCardapio = []; }
-            var pendentes = vendasCardapio.filter(function(v) { return v.status !== 'concluido'; }).length;
-            var badge = document.getElementById('badge-pedidos');
-            if (pendentes > 0) { badge.style.display = 'inline-block'; badge.innerText = pendentes; } 
-            else { badge.style.display = 'none'; }
-        };
+window.atualizarBadgePedidos = async function() {
+    var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
+    var pendentes = vendasCardapio.filter(function(v) { return v.status !== 'concluido'; }).length;
+    var badge = document.getElementById('badge-pedidos');
+    if (!badge) return;
+    if (pendentes > 0) { badge.style.display = 'inline-block'; badge.innerText = pendentes; } 
+    else { badge.style.display = 'none'; }
+};
 
-        setInterval(window.atualizarBadgePedidos, 3000);
+setInterval(window.atualizarBadgePedidos, 10000);
 
         window.onload = function() { 
             window.carregarProdutosAdmin(); 
