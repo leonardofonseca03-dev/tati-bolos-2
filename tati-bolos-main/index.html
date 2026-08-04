@@ -223,8 +223,8 @@
         </div>
     </div>
 
-    <script src="config.js"></script>
-    <script>
+<script type="module" src="config.js"></script>    
+<script>
         let carrinho = [];
 
         function mostrarToast(mensagem) {
@@ -236,31 +236,35 @@
             }, 2500);
         }
 
-        function carregarProdutos(filtro = 'todos') {
+async function carregarProdutos(filtro = 'todos') {
             const grid = document.getElementById('grid-produtos');
             const titulo = document.getElementById('titulo-categoria');
-            grid.innerHTML = '';
+            grid.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">Carregando cardápio da nuvem...</p>';
             
             let listaProdutos = [];
             try {
-                listaProdutos = JSON.parse(localStorage.getItem('tati_products')) || (typeof CONFIG !== 'undefined' ? CONFIG.products : []);
+                // Puxa os produtos direto do Firestore do Firebase!
+                listaProdutos = await window.obterProdutosDaNuvem();
             } catch (e) {
-                listaProdutos = (typeof CONFIG !== 'undefined' ? CONFIG.products : []);
+                console.error("Erro ao carregar produtos da nuvem:", e);
+                listaProdutos = [];
             }
 
             if (filtro === 'encomenda') {
                 titulo.innerText = "🎂 Faça sua Encomenda Personalizada";
                 
                 let opcoesEnc = [];
-                try { opcoesEnc = JSON.parse(localStorage.getItem('tati_encomenda_opcoes')); } catch(e) {}
+                try { 
+                    opcoesEnc = await window.obterOpcoesEncomendaDaNuvem(); 
+                } catch(e) {}
+                
                 if (!opcoesEnc || opcoesEnc.length === 0) {
                     opcoesEnc = [
-                        { id: 1, nome: "Bolo Pequeno (Aprox. 1kg)", preco: 60.00 },
-                        { id: 2, nome: "Bolo Médio (Aprox. 2kg)", preco: 110.00 },
-                        { id: 3, nome: "Bolo Grande (Aprox. 3kg)", preco: 160.00 },
-                        { id: 4, nome: "Caixa com 12 Doces Personalizados", preco: 45.00 }
+                        { nome: "Bolo Pequeno (Aprox. 1kg)", preco: 60.00 },
+                        { nome: "Bolo Médio (Aprox. 2kg)", preco: 110.00 },
+                        { nome: "Bolo Grande (Aprox. 3kg)", preco: 160.00 },
+                        { nome: "Caixa com 12 Doces Personalizados", preco: 45.00 }
                     ];
-                    localStorage.setItem('tati_encomenda_opcoes', JSON.stringify(opcoesEnc));
                 }
 
                 let optionsHtml = '';
@@ -297,33 +301,37 @@
             let produtosFiltrados = [];
             if (filtro === 'todos') { produtosFiltrados = listaProdutos; } 
             else if (filtro === 'promocao') { produtosFiltrados = listaProdutos.filter(p => p.promocao === true); } 
-            else { produtosFiltrados = listaProdutos.filter(p => p.category === filtro); }
+            else { produtosFiltrados = listaProdutos.filter(p => p.categoria === filtro || p.category === filtro); }
 
             if (produtosFiltrados.length === 0) {
                 grid.innerHTML = '<p style="color: #666; text-align: center; grid-column: 1/-1;">Nenhum produto encontrado nesta categoria no momento.</p>';
                 return;
             }
             
+            grid.innerHTML = '';
             produtosFiltrados.forEach(produto => {
-                const precoEfetivo = (produto.promocao && produto.preco_promo) ? produto.preco_promo : produto.price;
+                const precoBase = parseFloat(produto.preco || produto.price || 0);
+                const precoPromo = parseFloat(produto.preco_promo || 0);
+                const precoEfetivo = (produto.promocao && precoPromo > 0) ? precoPromo : precoBase;
+                
                 let precoHtml = '';
-                if (produto.promocao && produto.preco_promo) {
-                    precoHtml = `<div><span style="text-decoration: line-through; color: #888; font-size: 0.8rem;">R$ ${produto.price.toFixed(2)}</span><span style="color: var(--pink); font-weight: bold; font-size: 1rem; margin-left: 5px;">R$ ${produto.preco_promo.toFixed(2)}</span></div>`;
+                if (produto.promocao && precoPromo > 0) {
+                    precoHtml = `<div><span style="text-decoration: line-through; color: #888; font-size: 0.8rem;">R$ ${precoBase.toFixed(2)}</span><span style="color: var(--pink); font-weight: bold; font-size: 1rem; margin-left: 5px;">R$ ${precoPromo.toFixed(2)}</span></div>`;
                 } else {
-                    precoHtml = `<div style="margin-top: 5px; font-weight: bold; color: var(--pink);">R$ ${produto.price.toFixed(2)}</div>`;
+                    precoHtml = `<div style="margin-top: 5px; font-weight: bold; color: var(--pink);">R$ ${precoBase.toFixed(2)}</div>`;
                 }
 
                 grid.innerHTML += `
                     <div class="product-card" style="${produto.promocao ? 'border: 2px solid var(--pink); background: #fff8fa;' : ''}">
-                        <img src="${produto.imagem}" alt="${produto.name}" style="width: 75px; height: 75px; object-fit: cover; border-radius: 8px; background: #eee;" onerror="this.src='https://placehold.co/75?text=Foto'">
+                        <img src="${produto.imagem || ''}" alt="${produto.name || produto.nome}" style="width: 75px; height: 75px; object-fit: cover; border-radius: 8px; background: #eee;" onerror="this.src='https://placehold.co/75?text=Foto'">
                         <div style="flex: 1; margin-left: 15px;">
-                            <h3 style="margin: 0 0 5px 0; font-size: 1rem;">${produto.name} ${produto.promocao ? '<span style="color: var(--pink); font-size: 0.75rem; background: #f8bbd0; padding: 2px 6px; border-radius: 4px;">🔥 PROMO</span>' : ''}</h3>
-                            <p style="margin: 0; font-size: 0.8rem; color: #666;">${produto.desc}</p>
+                            <h3 style="margin: 0 0 5px 0; font-size: 1rem;">${produto.name || produto.nome} ${produto.promocao ? '<span style="color: var(--pink); font-size: 0.75rem; background: #f8bbd0; padding: 2px 6px; border-radius: 4px;">🔥 PROMO</span>' : ''}</h3>
+                            <p style="margin: 0; font-size: 0.8rem; color: #666;">${produto.desc || ''}</p>
                             ${precoHtml}
                         </div>
                         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-                            <input type="number" id="qtd-${produto.id}" value="1" min="1" style="width: 45px; text-align: center; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
-                            <button class="btn-primary" onclick="adicionarComQuantidade('${produto.id}', '${produto.name}', ${precoEfetivo})">Adicionar</button>
+                            <input type="number" id="qtd-${produto.firestoreId || produto.id}" value="1" min="1" style="width: 45px; text-align: center; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                            <button class="btn-primary" onclick="adicionarComQuantidade('${produto.firestoreId || produto.id}', '${produto.name || produto.nome}', ${precoEfetivo})">Adicionar</button>
                         </div>
                     </div>
                 `;
@@ -390,17 +398,14 @@
             mostrarToast(`🛒 ${quantidade}x ${nome} adicionado!`);
         }
 
-        function carregarZonasCarrinho() {
+async function carregarZonasCarrinho() {
             let zonasFrete = [];
-            try { zonasFrete = JSON.parse(localStorage.getItem('tati_zonas_frete')); } catch(e) {}
-            if (!zonasFrete || zonasFrete.length === 0) {
-                zonasFrete = [
-                    { id: 1, nome: "Zona 1 (Centro, Vila Nova, Vila Operária)", taxa: 7.00 },
-                    { id: 2, nome: "Zona 2 (Bela Vista, Palmas, Hortênsias, Cid. Nova)", taxa: 10.00 },
-                    { id: 3, nome: "Zona 3 (Periferia, Estância Serra Negra)", taxa: 15.00 }
-                ];
-                localStorage.setItem('tati_zonas_frete', JSON.stringify(zonasFrete));
+            try {
+                zonasFrete = await window.obterZonasFreteDaNuvem();
+            } catch(e) {
+                zonasFrete = [];
             }
+            
             const selectEntrega = document.getElementById('tipo-entrega');
             if(selectEntrega) {
                 selectEntrega.innerHTML = '<option value="Retirada na Loja" data-taxa="0">Retirada na Loja (R. São Geraldo) - Grátis</option>';
@@ -471,7 +476,7 @@
 
         function removerDoCarrinho(id) { carrinho = carrinho.filter(item => item.id != id); atualizarCarrinhoUI(); }
 
-        function finalizarPedidoWhatsApp() {
+async function finalizarPedidoWhatsApp() {
             if (carrinho.length === 0) { alert('Seu carrinho está vazio!'); return; }
 
             const cliNome = document.getElementById('cart-nome').value.trim();
@@ -494,27 +499,24 @@
                 return;
             }
 
-            let clientesTati = JSON.parse(localStorage.getItem('tati_clientes')) || [];
-            let clienteExistente = clientesTati.find(c => c.cpf === cliCpf);
-            
-            if (clienteExistente) {
-                clienteExistente.pedidos = (parseInt(clienteExistente.pedidos) || 0) + 1;
-                clienteExistente.nome = cliNome;
-                clienteExistente.whatsapp = cliZap;
-                if (nomeEntrega.includes('Entrega')) clienteExistente.endereco = enderecoCliente;
-            } else {
-                clientesTati.push({
-                    id: 'cli_' + Date.now(), nome: cliNome, cpf: cliCpf, whatsapp: cliZap, pedidos: 1, endereco: nomeEntrega.includes('Entrega') ? enderecoCliente : 'Não informado', observacoes: 'Cadastrado via Cardápio Digital'
-                });
-            }
-            clientesTati.sort((a, b) => b.pedidos - a.pedidos);
-            localStorage.setItem('tati_clientes', JSON.stringify(clientesTati));
-            
+            // Salva ou atualiza o cliente na nuvem
+            let novoCliente = {
+                id: 'cli_' + Date.now(),
+                nome: cliNome,
+                cpf: cliCpf,
+                whatsapp: cliZap,
+                pedidos: 1,
+                endereco: nomeEntrega.includes('Entrega') ? enderecoCliente : 'Não informado',
+                observacoes: 'Cadastrado via Cardápio Digital',
+                criadoEm: new Date().toLocaleString()
+            };
+            await window.salvarClienteNaNuvem(novoCliente);
+
             const formaPagamento = document.getElementById('forma-pagamento').value;
             let mensagem = `Olá! Sou *${cliNome}* e gostaria de fazer o seguinte pedido:%0A%0A`;
             let subtotalProdutos = 0;
             
-            carrinho.forEach(item => {
+            for (let item of carrinho) {
                 let sub = item.preco * item.quantidade;
                 subtotalProdutos += sub;
                 
@@ -525,7 +527,6 @@
 
                     mensagem += `🎂 *ENCOMENDA PERSONALIZADA*%0A• *Opção:* ${d.opcaoEscolhida}%0A• *Retirada:* ${d.dataRetirada} às ${d.horaRetirada}%0A• *Detalhes:* ${d.descricao}%0A• *Atendimento:* ${tipoEncFinal}%0A• *Valor:* R$ ${sub.toFixed(2)}%0A%0A`;
                     
-                    let listaEncomendas = JSON.parse(localStorage.getItem('tati_encomendas')) || [];
                     let novaEnc = { 
                         id: Date.now(), 
                         ...item.detalhes, 
@@ -540,22 +541,33 @@
                         endereco: enderecoCliente,
                         dataPedido: new Date().toLocaleString() 
                     };
-                    listaEncomendas.push(novaEnc);
-                    localStorage.setItem('tati_encomendas', JSON.stringify(listaEncomendas));
+                    // Salva encomenda na nuvem
+                    await window.salvarEncomendaNaNuvem(novaEnc);
                 } else {
                     mensagem += `- ${item.quantidade}x ${item.name} (R$ ${sub.toFixed(2)})%0A`;
                 }
-            });
+            }
 
             let totalGeral = subtotalProdutos + taxaEntrega;
             let tipoAdminFiltro = taxaEntrega > 0 ? 'Entrega (Delivery)' : 'Retirada na Loja';
             let nomeZonaCard = opcaoSelecionada.text.split(' - ')[0]; 
 
-            let vendasCardapio = JSON.parse(localStorage.getItem('tati_vendas_cardapio')) || [];
-            vendasCardapio.push({
-                id: Date.now(), data: new Date().toLocaleString(), cliente: cliNome + ' (CPF: ' + cliCpf + ')', itens: carrinho.map(item => ({ name: item.name, quantidade: item.quantidade, preco: item.preco })), taxaEntrega: taxaEntrega, total: totalGeral, tipoEntrega: tipoAdminFiltro, formaPagamento: formaPagamento, status: 'pendente', endereco: enderecoCliente, zona: nomeZonaCard
-            });
-            localStorage.setItem('tati_vendas_cardapio', JSON.stringify(vendasCardapio));
+            let novoPedidoOnline = {
+                id: Date.now(), 
+                data: new Date().toLocaleString(), 
+                cliente: cliNome + ' (CPF: ' + cliCpf + ')', 
+                itens: carrinho.map(item => ({ name: item.name, quantidade: item.quantidade, preco: item.preco })), 
+                taxaEntrega: taxaEntrega, 
+                total: totalGeral, 
+                tipoEntrega: tipoAdminFiltro, 
+                formaPagamento: formaPagamento, 
+                status: 'pendente', 
+                endereco: enderecoCliente, 
+                zona: nomeZonaCard
+            };
+            
+            // Salva o pedido online direto no Firestore (vai cair na aba de Pedidos Online do Admin!)
+            await window.salvarPedidoOnlineNaNuvem(novoPedidoOnline);
             
             mensagem += `----------------------------%0A`;
             if (taxaEntrega > 0) {
@@ -576,12 +588,13 @@
             atualizarCarrinhoUI();
             fecharCarrinho();
         }
-        
-        window.onload = function() {
-            carregarProdutos();
-            carregarZonasCarrinho();
+
+window.onload = async function() {
+            await carregarProdutos();
+            await carregarZonasCarrinho();
             verificarPix();
         };
-    </script>
+
+        </script>
 </body>
 </html>

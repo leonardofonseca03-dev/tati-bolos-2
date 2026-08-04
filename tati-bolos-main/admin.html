@@ -649,22 +649,25 @@
             }
         };
 
-        window.mudarAba = function(aba, btn) {
-            var botoes = document.querySelectorAll('.tab-btn');
-            for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
-            var secoes = document.querySelectorAll('.secao-painel');
-            for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
+window.mudarAba = function(aba, btn) {
+    var botoes = document.querySelectorAll('.tab-btn');
+    for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
+    var secoes = document.querySelectorAll('.secao-painel');
+    for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
 
-            if (aba === 'produtos') { document.getElementById('secao-produtos').style.display = 'block'; window.carregarProdutosAdmin(); window.renderizarOpcoesEncomendaAdmin(); } 
-            else if (aba === 'insumos') { document.getElementById('secao-insumos').style.display = 'block'; window.carregarInsumosAdmin(); } 
-            else if (aba === 'encomendas') { document.getElementById('secao-encomendas').style.display = 'block'; window.carregarEncomendasAdmin(); window.carregarZonasBalcao(); window.carregarOpcoesSelectBalcao(); } 
-            else if (aba === 'clientes') { document.getElementById('secao-clientes').style.display = 'block'; window.carregarClientesAdmin(); } 
-            else if (aba === 'funcionarios') { document.getElementById('secao-funcionarios').style.display = 'block'; window.carregarFuncionariosAdmin(); }
-            else if (aba === 'pdv') { document.getElementById('secao-pdv').style.display = 'block'; window.carregarPDV(); }
-            else if (aba === 'pedidos_online') { document.getElementById('secao-pedidos_online').style.display = 'block'; window.renderizarPedidosDiarios(); }
-            
-            if (btn) btn.classList.add('active');
-        };
+    if (aba === 'produtos') { document.getElementById('secao-produtos').style.display = 'block'; window.carregarProdutosAdmin(); window.renderizarOpcoesEncomendaAdmin(); } 
+    else if (aba === 'insumos') { document.getElementById('secao-insumos').style.display = 'block'; window.carregarInsumosAdmin(); } 
+    else if (aba === 'encomendas') { document.getElementById('secao-encomendas').style.display = 'block'; window.carregarEncomendasAdmin(); window.carregarZonasBalcao(); window.carregarOpcoesSelectBalcao(); } 
+    else if (aba === 'clientes') { document.getElementById('secao-clientes').style.display = 'block'; window.carregarClientesAdmin(); } 
+    else if (aba === 'funcionarios') { document.getElementById('secao-funcionarios').style.display = 'block'; window.carregarFuncionariosAdmin(); }
+    else if (aba === 'pdv') { document.getElementById('secao-pdv').style.display = 'block'; window.carregarPDV(); }
+    else if (aba === 'pedidos_online') { 
+        document.getElementById('secao-pedidos_online').style.display = 'block'; 
+        window.renderizarPedidosDiarios(); 
+    }
+    
+    if (btn) btn.classList.add('active');
+};
 
         window.toggleCampoPromo = function() {
             var isChecked = document.getElementById('promocao').checked;
@@ -1038,37 +1041,69 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         };
 
-        window.carregarEncomendasAdmin = async function() {
-            var container = document.getElementById('lista-encomendas-admin');
-            if (!container) return;
-            container.innerHTML = '<p style="color: #666; text-align: center;">Carregando encomendas da nuvem...</p>';
-            
-            var encNuvem = await window.obterEncomendasDaNuvem();
-            container.innerHTML = encNuvem.length === 0 ? '<p style="color: #666; text-align: center;">Nenhuma encomenda recebida na nuvem.</p>' : '';
-            
-            encNuvem.forEach(function(enc) {
-                var fotoHtml = enc.foto ? '<img src="' + enc.foto + '" onclick="abrirZoom(\'' + enc.foto + '\')" style="width: 65px; height: 65px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc; margin-top: 5px; cursor: pointer;">' : '<span style="font-size:0.8rem; color:#888;">Sem foto de referência</span>';
-                var atendenteHtml = enc.atendente ? '<br><span style="color:#2e7d32; font-size: 0.85rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
-                var entregaInfo = enc.tipoEntrega && enc.tipoEntrega.includes('Entrega') ? '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tipo:</strong> ' + enc.tipoEntrega + '<br><strong>Endereço:</strong> ' + (enc.endereco || 'Não informado') + '</p>' : '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tipo:</strong> Retirada na Loja</p>';
+window.carregarEncomendasAdmin = async function() {
+    var container = document.getElementById('lista-encomendas-admin');
+    if (!container) return;
+    container.innerHTML = '<p style="color: #666; text-align: center;">Carregando encomendas da nuvem...</p>';
+    
+    var encNuvem = await window.obterEncomendasDaNuvem();
+    container.innerHTML = encNuvem.length === 0 ? '<p style="color: #666; text-align: center;">Nenhuma encomenda recebida na nuvem.</p>' : '';
+    
+    encNuvem.forEach(function(enc) {
+        var fotoHtml = enc.foto ? '<img src="' + enc.foto + '" onclick="abrirZoom(\'' + enc.foto + '\')" style="width: 65px; height: 65px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc; margin-top: 5px; cursor: pointer;">' : '<span style="font-size:0.8rem; color:#888;">Sem foto de referência</span>';
+        var atendenteHtml = enc.atendente ? '<br><span style="color:#2e7d32; font-size: 0.85rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
+        var entregaInfo = enc.tipoEntrega && enc.tipoEntrega.includes('Entrega') ? '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tipo:</strong> ' + enc.tipoEntrega + '<br><strong>Endereço:</strong> ' + (enc.endereco || 'Não informado') + '</p>' : '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tipo:</strong> Retirada na Loja</p>';
 
-                container.innerHTML += '<div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;"><div style="display: flex; justify-content: space-between;"><strong style="font-size: 1.05rem; color: var(--pink);">' + enc.nomeCliente + '</strong><span style="font-size: 0.8rem; color: #666;">' + enc.dataPedido + '</span></div><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tel:</strong> ' + enc.telefone + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Retirada/Entrega:</strong> ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</p>' + entregaInfo + '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Opção:</strong> ' + enc.opcaoEscolhida + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Detalhes:</strong> ' + enc.descricao + '</p><p style="margin: 5px 0; font-size: 0.9rem;"><strong>Valor Total:</strong> R$ ' + Number(enc.total).toFixed(2) + ' | <strong>Pagamento:</strong> ' + enc.statusPagamento + ' (' + enc.formaPagamento + ')' + atendenteHtml + '</p><div style="margin-top: 8px;"><label style="font-size: 0.8rem; font-weight: bold;">Foto de Referência:</label><br>' + fotoHtml + '</div><div style="margin-top: 15px; text-align: right;"><button onclick="removerEncomendaAdmin(\'' + enc.firestoreId + '\')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Concluir / Remover</button></div></div>';
-            });
-        };
+        // Converte o objeto para string para enviar pro relatório ao concluir
+        var encJson = JSON.stringify(enc).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
-        window.abrirZoom = function(url) { var modal = document.getElementById('modal-zoom'), img = document.getElementById('img-zoom-conteudo'); if (modal && img) { img.src = url; modal.style.display = 'flex'; } };
-        window.fecharZoom = function() { var modal = document.getElementById('modal-zoom'); if (modal) modal.style.display = 'none'; };
-        
-        window.removerEncomendaAdmin = async function(firestoreId) {
-            if (confirm('Deseja remover esta encomenda da nuvem?')) {
-                var sucesso = await window.excluirEncomendaDaNuvem(firestoreId);
-                if (sucesso) {
-                    window.carregarEncomendasAdmin();
-                    alert("Encomenda removida com sucesso!");
-                } else {
-                    alert("Erro ao excluir encomenda.");
-                }
-            }
-        };
+        container.innerHTML += `
+            <div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;">
+                <div style="display: flex; justify-content: space-between;">
+                    <strong style="font-size: 1.05rem; color: var(--pink);">${enc.nomeCliente}</strong>
+                    <span style="font-size: 0.8rem; color: #666;">${enc.dataPedido || ''}</span>
+                </div>
+                <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Tel:</strong> ${enc.telefone}</p>
+                <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Retirada/Entrega:</strong> ${enc.dataRetirada} às ${enc.horaRetirada}</p>
+                ${entregaInfo}
+                <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Opção:</strong> ${enc.opcaoEscolhida}</p>
+                <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Detalhes:</strong> ${enc.descricao}</p>
+                <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Valor Total:</strong> R$ ${Number(enc.total).toFixed(2)} | <strong>Pagamento:</strong> ${enc.statusPagamento} (${enc.formaPagamento}) ${atendenteHtml}</p>
+                <div style="margin-top: 8px;"><label style="font-size: 0.8rem; font-weight: bold;">Foto de Referência:</label><br>${fotoHtml}</div>
+                
+                <div style="margin-top: 15px; text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button onclick="concluirEncomendaAdmin('${enc.firestoreId}', '${encJson}')" style="background: #2e7d32; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Concluir Venda</button>
+                    <button onclick="removerEncomendaAdmin('${enc.firestoreId}')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🗑️ Excluir</button>
+                </div>
+            </div>
+        `;
+    });
+};
+
+window.concluirEncomendaAdmin = async function(firestoreId, encJsonStr) {
+    if (confirm('Deseja finalizar esta encomenda e registrar a venda no relatório?')) {
+        var encObj = JSON.parse(encJsonStr.replace(/&apos;/g, "'").replace(/&quot;/g, '"'));
+        var sucesso = await window.concluirEncomendaNaNuvem(firestoreId, encObj);
+        if (sucesso) {
+            window.carregarEncomendasAdmin();
+            alert("Encomenda concluída e computada no Relatório de Vendas! 🎉");
+        } else {
+            alert("Erro ao concluir encomenda.");
+        }
+    }
+};
+
+window.removerEncomendaAdmin = async function(firestoreId) {
+    if (confirm('Deseja excluir esta encomenda sem registrar no relatório?')) {
+        var sucesso = await window.excluirEncomendaDaNuvem(firestoreId);
+        if (sucesso) {
+            window.carregarEncomendasAdmin();
+            alert("Encomenda excluída!");
+        } else {
+            alert("Erro ao excluir encomenda.");
+        }
+    }
+};
 
         // CALENDÁRIO DE ENCOMENDAS (NUVEM)
         window.abrirCalendarioEncomendas = function() {
@@ -1176,6 +1211,11 @@ document.addEventListener("DOMContentLoaded", function() {
         window.fecharRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'none'; };
         window.mudarAbaRelatorio = function(tipo, btn) { abaRelatorioAtual = tipo; var botoes = document.querySelectorAll('#modal-relatorio-vendas .rel-tab-btn'); for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active'); if(btn) btn.classList.add('active'); window.renderizarConteudoRelatorio(); };
         
+// RELATÓRIO DE VENDAS (NUVEM)
+        window.abrirRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'flex'; window.mudarAbaRelatorio('mesas', document.querySelector('.rel-tab-btn')); };
+        window.fecharRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'none'; };
+        window.mudarAbaRelatorio = function(tipo, btn) { abaRelatorioAtual = tipo; var botoes = document.querySelectorAll('#modal-relatorio-vendas .rel-tab-btn'); for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active'); if(btn) btn.classList.add('active'); window.renderizarConteudoRelatorio(); };
+        
         window.renderizarConteudoRelatorio = async function() {
             var container = document.getElementById('conteudo-relatorio');
             var totalGeralEl = document.getElementById('relatorio-total-geral');
@@ -1219,22 +1259,25 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
 
             } else if (abaRelatorioAtual === 'encomendas') {
-                var encNuvem = await window.obterEncomendasDaNuvem();
+                const snapEnc = await getDocs(collection(db, "vendas_encomendas"));
+                let encNuvem = [];
+                snapEnc.forEach(d => encNuvem.push(d.data()));
+
                 if (encNuvem.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda na nuvem.</p>';
+                    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda concluída no relatório.</p>';
                     totalGeralEl.innerText = '0.00';
                     return;
                 }
                 container.innerHTML = '';
-                encNuvem.forEach(function(enc) {
+                encNuvem.reverse().forEach(function(enc) {
                     somaTotal += Number(enc.total || 0);
                     var atendenteEnc = enc.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
-                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + enc.opcaoEscolhida + '</span><span>R$ ' + Number(enc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + enc.nomeCliente + ' (' + enc.telefone + ')</div>' + atendenteEnc + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Retirada: ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</span><span>Status: ' + enc.statusPagamento + '</span></div></div>';
+                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + enc.opcaoEscolhida + '</span><span>R$ ' + Number(enc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + enc.nomeCliente + ' (' + enc.telefone + ')</div>' + atendenteEnc + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Concluído em: ' + (enc.dataConclusao || enc.dataPedido) + '</span><span>Status: ✔ Concluído</span></div></div>';
                 });
             }
             totalGeralEl.innerText = somaTotal.toFixed(2);
         };
-        // VERIFICAR LEMBRETES DE ENCOMENDA (NUVEM)
+                    // VERIFICAR LEMBRETES DE ENCOMENDA (NUVEM)
         window.verificarLembretesEncomendas = async function() {
             var banner = document.getElementById('banner-alerta-encomenda');
             var textoBanner = document.getElementById('texto-alerta-encomenda');
@@ -1275,7 +1318,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Verifica a cada 30 segundos
         setInterval(window.verificarLembretesEncomendas, 30000);
-        
+
 window.salvarCliente = async function(event) {
     event.preventDefault(); 
     var cpfInput = document.getElementById('cli-cpf');
@@ -1806,12 +1849,24 @@ window.renderizarConteudoRelatorio = async function() {
         };
 
 var abaPedidosDiariosAtual = 'delivery';
-window.mudarAbaPedidosDiarios = function(tipo, btn) {
-    abaPedidosDiariosAtual = tipo;
-    var botoes = document.querySelectorAll('#secao-pedidos_online .rel-tab-btn');
+window.mudarAba = function(aba, btn) {
+    var botoes = document.querySelectorAll('.tab-btn');
     for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
-    if(btn) btn.classList.add('active');
-    window.renderizarPedidosDiarios();
+    var secoes = document.querySelectorAll('.secao-painel');
+    for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
+
+    if (aba === 'produtos') { document.getElementById('secao-produtos').style.display = 'block'; window.carregarProdutosAdmin(); window.renderizarOpcoesEncomendaAdmin(); } 
+    else if (aba === 'insumos') { document.getElementById('secao-insumos').style.display = 'block'; window.carregarInsumosAdmin(); } 
+    else if (aba === 'encomendas') { document.getElementById('secao-encomendas').style.display = 'block'; window.carregarEncomendasAdmin(); window.carregarZonasBalcao(); window.carregarOpcoesSelectBalcao(); } 
+    else if (aba === 'clientes') { document.getElementById('secao-clientes').style.display = 'block'; window.carregarClientesAdmin(); } 
+    else if (aba === 'funcionarios') { document.getElementById('secao-funcionarios').style.display = 'block'; window.carregarFuncionariosAdmin(); }
+    else if (aba === 'pdv') { document.getElementById('secao-pdv').style.display = 'block'; window.carregarPDV(); }
+    else if (aba === 'pedidos_online') { 
+        document.getElementById('secao-pedidos_online').style.display = 'block'; 
+        window.renderizarPedidosDiarios(); // << CARREGA OS PEDIDOS NA HORA
+    }
+    
+    if (btn) btn.classList.add('active');
 };
 
 window.renderizarPedidosDiarios = async function() {
@@ -1884,6 +1939,83 @@ setInterval(window.atualizarBadgePedidos, 10000);
             window.verificarLembretesEncomendas();
             setInterval(window.verificarLembretesEncomendas, 30000);
         };
+        // Variável de controle para o tipo de pedido atual
+window.tipoPedidoAtual = 'delivery'; 
+
+// Função global para alternar entre Delivery e Retirada nos Pedidos Online
+window.mudarAbaPedidosDiarios = function(tipo, btn) {
+    window.tipoPedidoAtual = tipo;
+    
+    // Remove a classe 'active' de todos os botões de sub-aba e coloca no clicado
+    var botoesSub = document.querySelectorAll('#secao-pedidos_online button');
+    botoesSub.forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    
+    // Atualiza a lista exibida na tela
+    window.renderizarPedidosDiarios();
+};
+
+// Função para buscar e renderizar os pedidos online da nuvem
+window.renderizarPedidosDiarios = async function() {
+    var container = document.getElementById('lista-pedidos-diarios');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="text-align: center; color: #666;">Carregando pedidos da nuvem...</p>';
+    
+    var pedidosNuvem = [];
+    try {
+        pedidosNuvem = await window.obterPedidosOnlineDaNuvem();
+    } catch (e) {
+        pedidosNuvem = [];
+    }
+
+    // Filtra com base na aba ativa (Delivery ou Retirada) e status pendente
+    var pendentes = pedidosNuvem.filter(function(p) {
+        var eDelivery = p.tipoEntrega && p.tipoEntrega.includes('Entrega');
+        if (window.tipoPedidoAtual === 'delivery') {
+            return p.status === 'pendente' && eDelivery;
+        } else {
+            return p.status === 'pendente' && !eDelivery;
+        }
+    });
+
+    if (pendentes.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Nenhum pedido pendente nesta aba.</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+    pendentes.forEach(function(pedido) {
+        var itensHtml = pedido.itens ? pedido.itens.map(i => `${i.quantidade}x ${i.name} (R$ ${(i.preco * i.quantidade).toFixed(2)})`).join('<br>') : '';
+        var taxaHtml = pedido.taxaEntrega > 0 ? `<br><strong>Taxa de Entrega:</strong> R$ ${Number(pedido.taxaEntrega).toFixed(2)} (${pedido.zona || 'Zona'})<br><strong>Endereço:</strong> ${pedido.endereco}` : '<br><strong>Tipo:</strong> Retirada na Loja';
+
+        container.innerHTML += `
+            <div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;">
+                <div style="display: flex; justify-content: space-between;">
+                    <strong style="color: var(--pink); font-size: 1.05rem;">${pedido.cliente}</strong>
+                    <span style="font-size: 0.8rem; color: #666;">${pedido.data}</span>
+                </div>
+                <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Itens:</strong><br>${itensHtml}</p>
+                <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Pagamento:</strong> ${pedido.formaPagamento} — <strong>Total:</strong> R$ ${Number(pedido.total).toFixed(2)}${taxaHtml}</p>
+                <div style="margin-top: 12px; text-align: right;">
+                    <button onclick="concluirPedidoOnlineAdmin('${pedido.firestoreId}')" style="background: #2e7d32; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Concluir Pedido</button>
+                </div>
+            </div>
+        `;
+    });
+};
+
+window.concluirPedidoOnlineAdmin = async function(firestoreId) {
+    if (confirm('Deseja concluir este pedido e enviá-lo para o relatório de vendas?')) {
+        var sucesso = await window.concluirPedidoOnlineNaNuvem(firestoreId);
+        if (sucesso) {
+            window.renderizarPedidosDiarios();
+            alert('Pedido concluído com sucesso! 🎉');
+        } else {
+            alert('Erro ao concluir o pedido.');
+        }
+    }
+};
     </script>
 </body>
 </html>

@@ -602,3 +602,22 @@ window.excluirEncomendaDaNuvem = async function(firestoreId) {
         return false;
     }
 };
+// ==========================================
+// Concluir Encomenda e Mover para Relatório (Nuvem)
+// ==========================================
+window.concluirEncomendaNaNuvem = async function(firestoreId, encomendaData) {
+    try {
+        // 1. Salva a venda concluída na coleção de vendas
+        await addDoc(collection(db, "vendas_encomendas"), {
+            ...encomendaData,
+            status: 'concluido',
+            dataConclusao: new Date().toLocaleString()
+        });
+        // 2. Remove da lista de encomendas pendentes
+        await deleteDoc(doc(db, "encomendas", firestoreId));
+        return true;
+    } catch (e) {
+        console.error("Erro ao concluir encomenda:", e);
+        return false;
+    }
+};
