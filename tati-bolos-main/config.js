@@ -1,6 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// TORNA AS FUNÇÕES DO FIRESTORE GLOBAIS PARA O ADMIN
+window.updateDoc = updateDoc;
+window.deleteDoc = deleteDoc;
+window.doc = doc;
+window.setDoc = setDoc;
+window.addDoc = addDoc;
+window.collection = collection;
+
+const LOJA_ID = "tati_bolos";
 const firebaseConfig = {
     apiKey: "AIzaSyAMIrJ1TQ9vTaoj9xd6CVb967EIW3Nbn4w",
     authDomain: "saas-tati-amor-doce.firebaseapp.com",
@@ -445,52 +454,7 @@ document.addEventListener("DOMContentLoaded", function() {
         window.carregarPDV();
     }
 });
-// ==========================================
-// 7. MÓDULO DE PEDIDOS ONLINE (NUVEM)
-// ==========================================
-window.obterPedidosOnlineDaNuvem = async function() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "pedidos"));
-        let lista = [];
-        querySnapshot.forEach((docSnap) => {
-            lista.push({ firestoreId: docSnap.id, id: docSnap.id, ...docSnap.data() });
-        });
-        return lista;
-    } catch (e) {
-        console.error("Erro ao buscar pedidos online:", e);
-        return [];
-    }
-};
 
-window.salvarPedidoOnlineNaNuvem = async function(novoPedido) {
-    try {
-        await addDoc(collection(db, "pedidos"), novoPedido);
-        return true;
-    } catch (e) {
-        console.error("Erro ao salvar pedido online:", e);
-        return false;
-    }
-};
-
-window.atualizarStatusPedidoOnlineNaNuvem = async function(firestoreId, novoStatus) {
-    try {
-        await updateDoc(doc(db, "pedidos", firestoreId), { status: novoStatus });
-        return true;
-    } catch (e) {
-        console.error("Erro ao atualizar status do pedido:", e);
-        return false;
-    }
-};
-
-window.excluirPedidoOnlineDaNuvem = async function(firestoreId) {
-    try {
-        await deleteDoc(doc(db, "pedidos", firestoreId));
-        return true;
-    } catch (e) {
-        console.error("Erro ao excluir pedido online:", e);
-        return false;
-    }
-};
 // ==========================================
 // 7. MÓDULO DE PEDIDOS ONLINE (NUVEM)
 // ==========================================
@@ -508,6 +472,16 @@ window.obterPedidosOnlineDaNuvem = async function() {
     }
 };
 
+window.salvarPedidoOnlineNaNuvem = async function(novoPedido) {
+    try {
+        await addDoc(collection(db, "pedidos_online"), novoPedido);
+        return true;
+    } catch (e) {
+        console.error("Erro ao salvar pedido online:", e);
+        return false;
+    }
+};
+
 window.atualizarStatusPedidoOnlineNaNuvem = async function(firestoreId, novoStatus) {
     try {
         await updateDoc(doc(db, "pedidos_online", firestoreId), { status: novoStatus });
@@ -517,6 +491,31 @@ window.atualizarStatusPedidoOnlineNaNuvem = async function(firestoreId, novoStat
         return false;
     }
 };
+
+window.excluirPedidoOnlineDaNuvem = async function(firestoreId) {
+    try {
+        await deleteDoc(doc(db, "pedidos_online", firestoreId));
+        return true;
+    } catch (e) {
+        console.error("Erro ao excluir pedido online:", e);
+        return false;
+    }
+};
+
+window.concluirPedidoOnlineNaNuvem = async function(firestoreId) {
+    try {
+        // Atualiza o status do pedido para 'concluido' na nuvem
+        await updateDoc(doc(db, "pedidos_online", firestoreId), { 
+            status: 'concluido',
+            dataConclusao: new Date().toLocaleString()
+        });
+        return true;
+    } catch (e) {
+        console.error("Erro ao concluir pedido online:", e);
+        return false;
+    }
+};
+
 // ==========================================
 // 8. MÓDULO DE ZONAS DE FRETE (NUVEM)
 // ==========================================
@@ -621,3 +620,9 @@ window.concluirEncomendaNaNuvem = async function(firestoreId, encomendaData) {
         return false;
     }
 };
+// Libera as ferramentas do Firestore globalmente para o admin.html
+window.db = db;
+window.getDocs = getDocs;
+window.collection = collection;
+window.doc = doc;
+window.deleteDoc = deleteDoc;

@@ -245,15 +245,36 @@
         <div id="secao-insumos" class="secao-painel" style="display: none;">
             <div class="card">
                 <h3 style="margin-top: 0; color: var(--pink);">Cadastrar Novo Insumo</h3>
-                <form id="form-insumo" onsubmit="salvarInsumo(event)">
-                    <div class="form-group"><label>Nome do Insumo:</label><input type="text" id="ins-nome" required placeholder="Ex: Farinha"></div>
-                    <div style="display: flex; gap: 15px;">
-                        <div class="form-group" style="flex: 1;"><label>Unidade:</label><select id="ins-unidade"><option value="kg">KG</option><option value="grama">Grama</option><option value="litro">Litro</option><option value="unidade">Unidade</option></select></div>
-                        <div class="form-group" style="flex: 1;"><label>Valor (R$):</label><input type="number" step="0.01" id="ins-valor" required></div>
-                    </div>
-                    <div class="form-group"><label>Fornecedor:</label><input type="text" id="ins-fornecedor" required></div>
-                    <button type="submit" class="btn-primary">Salvar Insumo</button>
-                </form>
+<form id="form-insumo" onsubmit="salvarInsumo(event)">
+    <div style="margin-bottom: 10px;">
+        <label>Nome do Insumo:</label>
+        <input type="text" id="ins-nome" placeholder="Ex: Farinha" required style="width: 100%; padding: 8px;">
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <div style="flex: 1;">
+            <label>Quantidade:</label>
+            <input type="number" id="ins-quantidade" step="any" placeholder="Ex: 10" style="width: 100%; padding: 8px;">
+        </div>
+        <div style="flex: 1;">
+            <label>Custo (R$):</label>
+            <input type="number" id="ins-valor" step="any" placeholder="Ex: 5.50" style="width: 100%; padding: 8px;">
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <div style="flex: 1;">
+            <label>Fornecedor:</label>
+            <input type="text" id="ins-fornecedor" placeholder="Ex: Souza Bueno" style="width: 100%; padding: 8px;">
+        </div>
+        <div style="flex: 1;">
+            <label>Data da Compra:</label>
+            <input type="date" id="ins-data" style="width: 100%; padding: 8px;">
+        </div>
+    </div>
+
+    <button type="submit" id="btn-salvar-insumo" style="background: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Salvar Insumo</button>
+</form>
             </div>
             <div class="card">
                 <h3 style="margin-top: 0; color: var(--pink);">Insumos Cadastrados</h3>
@@ -593,27 +614,30 @@
             mesasState['balcao'] = { nome: 'Balcão / Viagem', itens: [], status: 'livre' };
         }
 
-        // LOGIN E PERMISSÕES
-        window.fazerLogin = function(event) {
-            event.preventDefault();
-            var senha = document.getElementById('senha-login').value.trim();
-            if (senha === 'tati123') {
-                usuarioLogado = { tipo: 'mestre', nome: 'Tati (Mestre)' };
-                document.getElementById('modal-login').style.display = 'none';
-                document.getElementById('usuario-logado-txt').innerText = "Logado como: Mestre (Tati)";
-                aplicarPermissoes();
-                return;
-            }
-            var func = funcionariosTati.find(f => f.senha === senha);
-            if (func) {
-                usuarioLogado = { tipo: 'funcionario', nome: func.nome, acessos: func.acessos };
-                document.getElementById('modal-login').style.display = 'none';
-                document.getElementById('usuario-logado-txt').innerText = "Logado como: " + func.nome + " (" + func.funcao + ")";
-                aplicarPermissoes();
-                return;
-            }
-            alert("Senha incorreta!");
-        };
+// LOGIN E PERMISSÕES
+// LOGIN E PERMISSÕES
+window.fazerLogin = function(event) {
+    event.preventDefault();
+    var senha = document.getElementById('senha-login').value.trim();
+    if (senha === 'tati123') {
+        usuarioLogado = { tipo: 'mestre', nome: 'Tati (Mestre)' };
+        document.getElementById('modal-login').style.display = 'none';
+        document.getElementById('usuario-logado-txt').innerText = "Logado como: Mestre (Tati)";
+        console.log("🔓 Login Tati aprovado! Carregando painel...");
+        aplicarPermissoes(); // Ele já chama a aba de produtos e o carregamento!
+        return;
+    }
+    var func = funcionariosTati.find(f => f.senha === senha);
+    if (func) {
+        usuarioLogado = { tipo: 'funcionario', nome: func.nome, acessos: func.acessos };
+        document.getElementById('modal-login').style.display = 'none';
+        document.getElementById('usuario-logado-txt').innerText = "Logado como: " + func.nome;
+        console.log("🔓 Login Funcionário aprovado! Carregando painel...");
+        aplicarPermissoes(); // Ele já chama a aba de produtos e o carregamento!
+        return;
+    }
+    alert("Senha incorreta!");
+};
 
         window.fazerLogout = function() {
             usuarioLogado = null;
@@ -674,116 +698,192 @@ window.mudarAba = function(aba, btn) {
             document.getElementById('grupo-preco-promo').style.display = isChecked ? 'block' : 'none';
         };
 
-window.carregarProdutosAdmin = async function() {
-    var container = document.getElementById('lista-produtos-admin') || document.querySelector('.lista-produtos') || document.getElementById('produtos-container');
+async function carregarProdutosAdmin() {
+    console.log("🔍 [1] Iniciando busca direta no Firestore...");
+    
+    var container = document.getElementById('lista-produtos-admin');
     if (!container) return;
+
+    container.innerHTML = '<p style="color: #666; text-align: center; padding: 10px;">Carregando do banco...</p>';
     
-    container.innerHTML = "<p style='padding: 10px;'>Carregando produtos da nuvem...</p>";
-    
-    var produtosNuvem = await window.obterProdutosDaNuvem();
-    container.innerHTML = "";
-    
-    if (produtosNuvem.length === 0) {
-        container.innerHTML = "<p style='padding: 10px; color: #666;'>Nenhum produto cadastrado na nuvem.</p>";
+    var tentativas = 0;
+    while (!window.db && tentativas < 25) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tentativas++;
+    }
+
+    if (!window.db) {
+        container.innerHTML = '<p style="color: red; text-align: center;">Erro: Conexão com Firebase falhou.</p>';
         return;
     }
 
-    produtosNuvem.forEach(function(produto) {
-        var precoDisplay = 'R$ ' + Number(produto.preco || 0).toFixed(2);
-        container.innerHTML += `
-            <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <img src="${produto.imagem || ''}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 4px;">
-                    <div>
-                        <strong>${produto.name || produto.nome || 'Produto'}</strong><br>
-                        <small style="color: #666;">Categoria: ${produto.categoria || 'Geral'} | <strong>${precoDisplay}</strong></small>
+    try {
+        console.log("🔍 [2] Firebase pronto! Buscando documentos...");
+        var querySnapshot = await getDocs(collection(window.db, "produtos"));
+        var produtosNuvem = [];
+        
+        querySnapshot.forEach(function(doc) {
+            var prod = doc.data();
+            prod.firestoreId = doc.id;
+            produtosNuvem.push(prod);
+        });
+
+        console.log("🔍 [3] Total de produtos encontrados:", produtosNuvem.length);
+
+        if (produtosNuvem.length === 0) {
+            container.innerHTML = '<p style="color: #666; text-align: center; padding: 10px;">Nenhum produto cadastrado na nuvem.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        produtosNuvem.forEach(function(produto) {
+            var precoVal = Number(produto.preco || produto.precoOriginal || 0);
+            var precoDisplay = 'R$ ' + precoVal.toFixed(2);
+            var nomeProd = (produto.name || produto.nome || 'Produto').replace(/'/g, "\\'");
+            var descProd = (produto.descricao || '').replace(/'/g, "\\'");
+            var catProd = (produto.categoria || 'Geral').replace(/'/g, "\\'");
+            var prodId = produto.firestoreId || produto.id;
+
+            container.innerHTML += `
+                <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${produto.imagem || ''}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'">
+                        <div>
+                            <strong>${produto.name || produto.nome || 'Produto'}</strong><br>
+                            <small style="color: #666;">Categoria: ${produto.categoria || 'Geral'} | <strong>${precoDisplay}</strong></small>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="prepararEdicaoProduto('${prodId}', '${nomeProd}', ${precoVal}, '${catProd}', '${descProd}')" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
+                        <button onclick="deletarProdutoAdmin('${prodId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Excluir</button>
                     </div>
                 </div>
-                <button onclick="deletarProdutoAdmin('${produto.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Excluir</button>
-            </div>
-        `;
-    });
-};
-
-// Função para acionar a exclusão
-window.deletarProdutoAdmin = async function(firestoreId) {
-    if (!confirm('Deseja realmente excluir este produto da nuvem?')) return;
-    
-    var sucesso = await window.excluirDaNuvem(firestoreId);
-    if (sucesso) {
-        alert("Produto excluído com sucesso!");
-        carregarProdutosAdmin(); // Atualiza a tela na hora
-    } else {
-        alert("Erro ao excluir o produto.");
+            `;
+        });
+        console.log("🔍 [4] Renderização com BOTÕES concluída com sucesso!");
+    } catch (err) {
+        console.error("🔥 ERRO:", err);
     }
-};
+}
 
-// Carrega ao abrir a página
-document.addEventListener("DOMContentLoaded", function() {
-    if (typeof carregarProdutosAdmin === 'function') {
-        carregarProdutosAdmin();
-    }
-});
+// Vincula ao escopo global
+window.carregarProdutosAdmin = carregarProdutosAdmin;
+// ⚠️ NÃO COLOQUE carregarProdutosAdmin(); AQUI EMBAIXO! DEIXE VAZIO!
 
 window.salvarProduto = async function(event) {
     event.preventDefault(); 
-    var fileInput = document.getElementById('imagem-file');
-    if (!fileInput.files || !fileInput.files[0]) return alert('Selecione uma foto!');
-    var file = fileInput.files[0], reader = new FileReader();
     
-    reader.onload = async function(e) {
-        var nomeInput = document.getElementById('nomeProduto') || document.querySelector('input[name="nome"]') || document.querySelectorAll('input[type="text"]')[0];
-        var precoInput = document.getElementById('precoProduto') || document.querySelector('input[name="preco"]') || document.querySelector('input[type="number"]');
-        var catInput = document.getElementById('categoriaProduto') || document.querySelector('select');
+    var nomeInput = document.getElementById('nomeProduto') || document.querySelector('input[name="nome"]') || document.querySelectorAll('input[type="text"]')[0];
+    var precoInput = document.getElementById('precoProduto') || document.querySelector('input[name="preco"]') || document.querySelector('input[type="number"]');
+    var catInput = document.getElementById('categoriaProduto') || document.querySelector('select');
 
-        var novoProduto = {
-            id: 'prod_' + Date.now(),
-            name: nomeInput ? nomeInput.value : 'Bolo',
-            preco: precoInput ? precoInput.value : '0',
-            categoria: catInput ? catInput.value : 'Geral',
-            imagem: e.target.result
+    var nomeVal = nomeInput ? nomeInput.value : '';
+    var precoVal = precoInput ? precoInput.value : '0';
+    var catVal = catInput ? catInput.value : 'Geral';
+
+    if (!nomeVal || nomeVal === '') {
+        return alert('Preencha o nome do produto!');
+    }
+
+    // Função interna para prosseguir após pegar a imagem (ou manter a antiga se estiver editando)
+    var executarSalvamento = async function(imagemUrl) {
+        var dadosProduto = {
+            name: nomeVal,
+            preco: precoVal,
+            categoria: catVal,
+            imagem: imagemUrl || ''
         };
 
-        if (!novoProduto.name || novoProduto.name === '') {
-            return alert('Preencha o nome do produto!');
-        }
-
-        // Salva direto na nuvem do Firebase!
-        await salvarNaNuvem("produtos", novoProduto);
+if (window.editandoProdutoId) {
+    await window.updateDoc(window.doc(window.db, "produtos", window.editandoProdutoId), dadosProduto);
+    alert("Produto atualizado com sucesso!");
+    window.editandoProdutoId = null;
+} else {
+    dadosProduto.id = 'prod_' + Date.now();
+    await window.salvarNaNuvem("produtos", dadosProduto);
+    alert("Produto salvo na nuvem com sucesso!");
+}
 
         var formEl = document.getElementById('form-produto') || document.querySelector('form');
         if (formEl) formEl.reset();
-        
-        alert("Produto salvo na nuvem com sucesso!");
         
         if (typeof carregarProdutosAdmin === 'function') {
             carregarProdutosAdmin();
         }
     };
-    reader.readAsDataURL(file);
+
+    // Verifica se o usuário selecionou uma nova imagem
+    var fileInput = document.getElementById('imagem-file');
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        var file = fileInput.files[0], reader = new FileReader();
+        reader.onload = async function(e) {
+            await executarSalvamento(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // Se estiver editando e não mudou a foto, mantém o que já tava ou manda vazio
+        await executarSalvamento(null);
+    }
 };
         window.excluirProduto = function(id) { if (confirm('Deseja excluir este produto?')) { produtos = produtos.filter(function(p) { return p.id !== id; }); localStorage.setItem('tati_products', JSON.stringify(produtos)); window.carregarProdutosAdmin(); } };
 
 window.salvarInsumo = async function(event) {
-    event.preventDefault();
-    var nomeInput = document.getElementById('ins-nome');
-    if (!nomeInput || !nomeInput.value.trim()) {
-        return alert('Preencha o nome do insumo!');
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
     }
 
-    var novoInsumo = {
-        id: 'ins_' + Date.now(),
-        nome: nomeInput.value.trim(),
-        criadoEm: new Date().toLocaleString('pt-BR')
-    };
+    try {
+        var nomeInput = document.getElementById('ins-nome');
+        if (!nomeInput || !nomeInput.value.trim()) {
+            alert('Preencha o nome do insumo!');
+            return;
+        }
 
-    var sucesso = await window.salvarInsumoNaNuvem(novoInsumo);
-    if (sucesso) {
-        nomeInput.value = '';
-        alert("Insumo salvo na nuvem com sucesso!");
-        carregarInsumosAdmin();
-    } else {
-        alert("Erro ao salvar insumo na nuvem.");
+        var qtdInput = document.getElementById('ins-quantidade');
+        var valorInput = document.getElementById('ins-valor');
+        var fornecedorInput = document.getElementById('ins-fornecedor');
+        var dataInput = document.getElementById('ins-data');
+
+        var dadosInsumo = {
+            nome: nomeInput.value.trim(),
+            quantidade: qtdInput && qtdInput.value ? Number(qtdInput.value) : 0,
+            custo: valorInput && valorInput.value ? Number(valorInput.value) : 0,
+            fornecedor: fornecedorInput ? fornecedorInput.value.trim() : '',
+            dataCompra: dataInput ? dataInput.value : '',
+            lojaId: typeof LOJA_ID !== 'undefined' ? LOJA_ID : "tati_bolos"
+        };
+
+        if (window.editandoInsumoId) {
+            await window.updateDoc(window.doc(window.db, "insumos", window.editandoInsumoId), dadosInsumo);
+            alert("Insumo atualizado com sucesso!");
+            window.editandoInsumoId = null;
+        } else {
+            dadosInsumo.id = 'ins_' + Date.now();
+            var sucesso = await window.salvarInsumoNaNuvem(dadosInsumo);
+            if (!sucesso) {
+                alert("Erro ao salvar insumo na nuvem.");
+                return;
+            }
+            alert("Insumo salvo na nuvem com sucesso!");
+        }
+
+        // Limpa os campos
+        if (nomeInput) nomeInput.value = '';
+        if (qtdInput) qtdInput.value = '';
+        if (valorInput) valorInput.value = '';
+        if (fornecedorInput) fornecedorInput.value = '';
+        if (dataInput) dataInput.value = '';
+
+        var btnSalvar = document.getElementById('btn-salvar-insumo');
+        if(btnSalvar) btnSalvar.innerText = 'Salvar Insumo';
+
+        if (typeof carregarInsumosAdmin === 'function') {
+            carregarInsumosAdmin();
+        }
+    } catch (error) {
+        console.error("Erro detalhado ao salvar/atualizar insumo:", error);
+        alert("Erro ao salvar/atualizar insumo. Verifique o console.");
     }
 };
 
@@ -801,17 +901,26 @@ window.carregarInsumosAdmin = async function() {
         return;
     }
 
-    insumosNuvem.forEach(function(ins) {
-        container.innerHTML += `
-            <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
-                <div>
-                    <strong>${ins.nome || ins.name || 'Insumo'}</strong>
-                </div>
-                <button onclick="excluirInsumoAdmin('${ins.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Excluir</button>
+insumosNuvem.forEach(function(insumo) {
+    var nomeIns = (insumo.nome || '').replace(/'/g, "\\'");
+    var qtdIns = insumo.quantidade || 0;
+    var custoIns = insumo.custo || 0;
+    var fornecedorIns = (insumo.fornecedor || '').replace(/'/g, "\\'");
+    var dataIns = insumo.dataCompra || '';
+    var insId = insumo.firestoreId || insumo.id;
+
+    container.innerHTML += `
+        <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
+            <div>
+                <strong>${insumo.nome}</strong> - Qtd: ${qtdIns} | Custo: R$ ${custoIns} <br>
+                <small style="color: #666;">Fornecedor: ${insumo.fornecedor || 'Não informado'} | Data: ${dataIns || 'N/A'}</small>
             </div>
-        `;
-    });
-};
+            <div style="display: flex; gap: 5px;">
+                <button onclick="prepararEdicaoInsumo('${insId}', '${nomeIns}', ${qtdIns}, ${custoIns}, '${fornecedorIns}', '${dataIns}')" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
+                <button onclick="deletarInsumoAdmin('${insId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Excluir</button>
+            </div>
+        </div>
+    `;});};
 
 window.excluirInsumoAdmin = async function(firestoreId) {
     if (!confirm('Deseja realmente excluir este insumo da nuvem?')) return;
@@ -1242,9 +1351,10 @@ window.removerEncomendaAdmin = async function(firestoreId) {
                     container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + v.mesa + '</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Itens: ' + itensStr + '</div>' + atendenteStr + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Pagamento: ' + (v.pagamento || '').toUpperCase() + '</span><span>' + v.data + '</span></div></div>';
                 });
 
-            } else if (abaRelatorioAtual === 'cardapio') {
+} else if (abaRelatorioAtual === 'cardapio') {
                 var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
                 var concluidos = vendasCardapio.filter(function(v) { return v.status === 'concluido'; });
+                
                 if (concluidos.length === 0) {
                     container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda online concluída na nuvem.</p>';
                     totalGeralEl.innerText = '0.00';
@@ -1254,7 +1364,7 @@ window.removerEncomendaAdmin = async function(firestoreId) {
                 concluidos.slice().reverse().forEach(function(vc) {
                     somaTotal += Number(vc.total || 0);
                     var itensStr = vc.itens ? vc.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
-                    var tipoAtendimento = vc.tipoEntrega === 'Entrega (Delivery)' ? '🛵 Delivery (' + (vc.zona || 'Zona') + ')' : '🏪 Retirada na Loja';
+                    var tipoAtendimento = vc.tipoEntrega && vc.tipoEntrega.includes('Entrega') ? '🛵 Delivery (' + (vc.zona || 'Zona') + ')' : '🏪 Retirada na Loja';
                     container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink); margin-bottom: 4px;"><span>Cardápio Online</span><span>R$ ' + Number(vc.total).toFixed(2) + '</span></div><div style="font-size: 0.85rem; color: #333; margin-bottom: 2px;"><strong>Cliente:</strong> ' + (vc.cliente || 'Balcão') + '</div><div style="font-size: 0.85rem; color: #2e7d32; font-weight: bold; margin-bottom: 4px;">' + tipoAtendimento + '</div>' + (itensStr ? '<div style="font-size: 0.8rem; color: #555; margin-bottom: 4px;"><strong>Itens:</strong> ' + itensStr + '</div>' : '') + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + vc.formaPagamento + '</span><span>' + vc.data + '</span></div></div>';
                 });
 
@@ -1378,6 +1488,7 @@ window.carregarClientesAdmin = async function() {
                 </div>
                 <div style="display: flex; gap: 6px;">
                     <button onclick="somarPedidoCliente('${cli.firestoreId}', ${cli.pedidos || 0})" style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Adicionar Pedido">+ Pedido</button>
+                    <button onclick="prepararEdicaoProduto('${p.firestoreId}', '${p.nome}', ${p.preco}, '${p.categoria}', '${p.descricao}')" style="background: #ff9800; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
                     <button onclick="excluirCliente('${cli.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Excluir">Excluir</button>
                 </div>
             </div>
@@ -1465,6 +1576,7 @@ window.carregarFuncionariosAdmin = async function() {
                     <span style="font-size: 0.8rem; color: #777;">Acessos permitidos: <strong>${permissoesStr}</strong></span><br>
                     <span style="font-size: 0.8rem; color: #888;">Senha de acesso: <code style="background:#eee; padding:2px 4px; border-radius:4px;">${f.senha}</code></span>
                 </div>
+                <button onclick="prepararEdicaoProduto('${p.firestoreId}', '${p.nome}', ${p.preco}, '${p.categoria}', '${p.descricao}')" style="background: #ff9800; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
                 <button onclick="excluirFuncionario('${f.firestoreId}')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>
             </div>
         `;
@@ -1928,18 +2040,7 @@ window.atualizarBadgePedidos = async function() {
 
 setInterval(window.atualizarBadgePedidos, 10000);
 
-        window.onload = function() { 
-            window.carregarProdutosAdmin(); 
-            window.renderizarOpcoesEncomendaAdmin();
-            window.carregarClientesAdmin(); 
-            window.carregarFuncionariosAdmin();
-            window.carregarZonasBalcao();
-            window.carregarOpcoesSelectBalcao();
-            window.atualizarBadgePedidos();
-            window.verificarLembretesEncomendas();
-            setInterval(window.verificarLembretesEncomendas, 30000);
-        };
-        // Variável de controle para o tipo de pedido atual
+// Variável de controle para o tipo de pedido atual
 window.tipoPedidoAtual = 'delivery'; 
 
 // Função global para alternar entre Delivery e Retirada nos Pedidos Online
@@ -2016,6 +2117,115 @@ window.concluirPedidoOnlineAdmin = async function(firestoreId) {
         }
     }
 };
+// ==========================================
+// MÓDULO DE EDIÇÃO (PRODUTOS, INSUMOS, CLIENTES, FUNCIONÁRIOS)
+// ==========================================
+
+// --- 1. PRODUTOS ---
+window.editandoProdutoId = null;
+
+window.prepararEdicaoProduto = function(firestoreId, name, preco, categoria, descricao) {
+    window.editandoProdutoId = firestoreId;
+    
+    var nomeInput = document.getElementById('nomeProduto') || document.querySelector('input[name="nome"]') || document.querySelectorAll('input[type="text"]')[0];
+    var precoInput = document.getElementById('precoProduto') || document.querySelector('input[name="preco"]') || document.querySelector('input[type="number"]');
+    var catInput = document.getElementById('categoriaProduto') || document.querySelector('select');
+    var descInput = document.getElementById('descricaoProduto') || document.querySelector('textarea');
+
+    if (nomeInput) nomeInput.value = name || '';
+    if (precoInput) precoInput.value = preco || 0;
+    if (catInput) catInput.value = categoria || 'Geral';
+    if (descInput) descInput.value = descricao || '';
+
+    var btnSalvar = document.getElementById('btn-salvar-produto') || document.querySelector('form#form-produto button[type="submit"]');
+    if (btnSalvar) btnSalvar.innerText = 'Atualizar Produto';
+
+    alert('Modo de edição ativado para o produto! Altere os dados e clique em Salvar.');
+};
+
+// --- 2. INSUMOS ---
+window.editandoInsumoId = null;
+
+window.prepararEdicaoInsumo = function(firestoreId, nome, quantidade, custo, fornecedor, dataCompra) {
+    window.editandoInsumoId = firestoreId;
+    
+    var inputNome = document.getElementById('ins-nome');
+    var inputQtd = document.getElementById('ins-quantidade');
+    var inputCusto = document.getElementById('ins-valor');
+    var inputFornecedor = document.getElementById('ins-fornecedor');
+    var inputData = document.getElementById('ins-data');
+
+    if(inputNome) inputNome.value = nome || '';
+    if(inputQtd) inputQtd.value = quantidade || 0;
+    if(inputCusto) inputCusto.value = custo || 0;
+    if(inputFornecedor) inputFornecedor.value = fornecedor || '';
+    if(inputData) inputData.value = dataCompra || '';
+    
+    var btnSalvar = document.getElementById('btn-salvar-insumo');
+    if(btnSalvar) btnSalvar.innerText = 'Atualizar Insumo';
+    
+    alert('Modo de edição ativado para o insumo. Altere os dados e clique em Atualizar!');
+};
+
+// --- 3. CLIENTES ---
+window.editandoClienteId = null;
+
+window.prepararEdicaoCliente = function(firestoreId, nome, cpf, whatsapp, endereco) {
+    window.editandoClienteId = firestoreId;
+    if(document.getElementById('nome-cliente')) document.getElementById('nome-cliente').value = nome;
+    if(document.getElementById('cpf-cliente')) document.getElementById('cpf-cliente').value = cpf;
+    if(document.getElementById('zap-cliente')) document.getElementById('zap-cliente').value = whatsapp;
+    if(document.getElementById('endereco-cliente')) document.getElementById('endereco-cliente').value = endereco;
+    
+    var btnSalvar = document.getElementById('btn-salvar-cliente');
+    if(btnSalvar) btnSalvar.innerText = 'Atualizar Cliente';
+    
+    alert('Modo de edição ativado para o cliente.');
+};
+
+// --- 4. FUNCIONÁRIOS ---
+window.editandoFuncionarioId = null;
+
+window.prepararEdicaoFuncionario = function(firestoreId, nome, cargo, senha) {
+    window.editandoFuncionarioId = firestoreId;
+    if(document.getElementById('nome-funcionario')) document.getElementById('nome-funcionario').value = nome;
+    if(document.getElementById('cargo-funcionario')) document.getElementById('cargo-funcionario').value = cargo;
+    if(document.getElementById('senha-funcionario')) document.getElementById('senha-funcionario').value = senha;
+    
+    var btnSalvar = document.getElementById('btn-salvar-funcionario');
+    if(btnSalvar) btnSalvar.innerText = 'Atualizar Funcionário';
+    
+    alert('Modo de edição ativado para o funcionário.');
+};
+// --- FUNÇÕES DE EXCLUSÃO GLOBAIS ---
+window.deletarProdutoAdmin = async function(id) {
+    if (!confirm('Deseja realmente excluir este produto?')) return;
+    try {
+        await deleteDoc(doc(db, "produtos", id));
+        alert('Produto excluído com sucesso!');
+        if (typeof window.carregarProdutosAdmin === 'function') window.carregarProdutosAdmin();
+    } catch (e) {
+        console.error("Erro ao excluir produto:", e);
+        alert('Erro ao excluir produto.');
+    }
+};
+
+window.deletarInsumoAdmin = async function(id) {
+    if (!confirm('Deseja realmente excluir este insumo?')) return;
+    try {
+        await deleteDoc(doc(db, "insumos", id));
+        alert('Insumo excluído com sucesso!');
+        if (typeof window.carregarInsumosAdmin === 'function') window.carregarInsumosAdmin();
+    } catch (e) {
+        console.error("Erro ao excluir insumo:", e);
+        alert('Erro ao excluir insumo.');
+    }
+};
+
     </script>
+    <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->
+<div style="text-align: center; padding: 20px 0; margin-top: 30px; border-top: 1px solid #eee; font-size: 0.85rem; color: #666;">
+    Desenvolvido com excelência por <a href="https://nomadsystems.carrd.co" target="_blank" style="color: var(--pink); text-decoration: none; font-weight: bold;">Nomad Systems</a> 🚀
+</div>
 </body>
 </html>
