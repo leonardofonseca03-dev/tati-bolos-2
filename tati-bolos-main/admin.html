@@ -211,9 +211,18 @@
                         <div class="form-group" style="flex: 1;"><label>Categoria:</label><select id="categoria"><option value="salgados">Salgados</option><option value="cafeteria">Cafeteria</option><option value="cookies">Cookies</option><option value="bebidas">Bebidas</option></select></div>
                     </div>
                     <div class="form-group"><label>Foto do Produto:</label><input type="file" id="imagem-file" accept="image/*" required></div>
-                    <div class="form-group" style="display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="promocao" onchange="toggleCampoPromo()" style="width: 20px; height: 20px;"><label for="promocao" style="margin: 0; cursor: pointer;">Colocar em Promoção</label></div>
-                    <div class="form-group" id="grupo-preco-promo" style="display: none; background: #fff8fa; padding: 12px; border-radius: 6px; border: 1px dashed var(--pink);"><label style="color: var(--pink);">Valor Promocional (R$):</label><input type="number" step="0.01" id="preco-promo" placeholder="Ex: 14.90" style="margin-bottom: 10px;"></div>
-                    <button type="submit" class="btn-primary">Salvar Produto</button>
+<div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+    <input type="checkbox" id="promocao" onchange="toggleCampoPromo()" style="width: 20px; height: 20px;">
+    <label for="promocao" style="margin: 0; cursor: pointer;">Colocar em Promoção</label>
+</div>
+
+<div class="form-group" id="grupo-preco-promo" style="display: none; background: #fff8fa; padding: 12px; border-radius: 6px; border: 1px dashed var(--pink);">
+    <label style="color: var(--pink); display: block; margin-bottom: 5px;">Valor Promocional (R$):</label>
+    <input type="number" step="0.01" id="preco-promo" placeholder="Ex: 14.90" style="margin-bottom: 12px; width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+    
+    <label style="color: var(--pink); display: block; margin-bottom: 5px; font-size: 0.85rem;">⏰ Expira automaticamente em (Data e Hora):</label>
+    <input type="datetime-local" id="promo-expira-em" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+</div>                    <button type="submit" class="btn-primary">Salvar Produto</button>
                 </form>
             </div>
 
@@ -698,9 +707,9 @@ window.mudarAba = function(aba, btn) {
             document.getElementById('grupo-preco-promo').style.display = isChecked ? 'block' : 'none';
         };
 
+window.produtosAdminCache = {}; // Armazena os produtos para edição segura
+
 async function carregarProdutosAdmin() {
-    console.log("🔍 [1] Iniciando busca direta no Firestore...");
-    
     var container = document.getElementById('lista-produtos-admin');
     if (!container) return;
 
@@ -718,17 +727,16 @@ async function carregarProdutosAdmin() {
     }
 
     try {
-        console.log("🔍 [2] Firebase pronto! Buscando documentos...");
         var querySnapshot = await getDocs(collection(window.db, "produtos"));
+        window.produtosAdminCache = {}; // Limpa o cache anterior
         var produtosNuvem = [];
         
         querySnapshot.forEach(function(doc) {
             var prod = doc.data();
             prod.firestoreId = doc.id;
+            window.produtosAdminCache[prod.firestoreId] = prod; // Salva no cache
             produtosNuvem.push(prod);
         });
-
-        console.log("🔍 [3] Total de produtos encontrados:", produtosNuvem.length);
 
         if (produtosNuvem.length === 0) {
             container.innerHTML = '<p style="color: #666; text-align: center; padding: 10px;">Nenhum produto cadastrado na nuvem.</p>';
@@ -738,82 +746,104 @@ async function carregarProdutosAdmin() {
         container.innerHTML = '';
 
         produtosNuvem.forEach(function(produto) {
-            var precoVal = Number(produto.preco || produto.precoOriginal || 0);
-            var precoDisplay = 'R$ ' + precoVal.toFixed(2);
-            var nomeProd = (produto.name || produto.nome || 'Produto').replace(/'/g, "\\'");
-            var descProd = (produto.descricao || '').replace(/'/g, "\\'");
-            var catProd = (produto.categoria || 'Geral').replace(/'/g, "\\'");
             var prodId = produto.firestoreId || produto.id;
+            var precoVal = Number(produto.preco || produto.precoOriginal || 0);
+            
+            // Valida se a promoção expirou automaticamente pela data/hora
+            var isPromo = produto.promocao || false;
+            if (isPromo && produto.promo_expira) {
+                var dataExpiracao = new Date(produto.promo_expira);
+                if (new Date() > dataExpiracao) {
+                    isPromo = false; // Desativa visualmente se o prazo venceu
+                }
+            }
+
+            var precoPromoVal = Number(produto.preco_promo || 0);
+            var precoDisplay = isPromo && precoPromoVal > 0 
+                ? '<del style="color:#999;">R$ ' + precoVal.toFixed(2) + '</del> <strong style="color:var(--pink);">R$ ' + precoPromoVal.toFixed(2) + '</strong>' 
+                : 'R$ ' + precoVal.toFixed(2);
+            
+            var seloPromo = isPromo ? '<span style="background: var(--pink); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 6px; font-weight: bold;">🔥 PROMO</span>' : '';
+            var expiraInfo = produto.promo_expira ? `<br><small style="color:#888;">Expira em: ${new Date(produto.promo_expira).toLocaleString()}</small>` : '';
 
             container.innerHTML += `
                 <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${produto.imagem || ''}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'">
                         <div>
-                            <strong>${produto.name || produto.nome || 'Produto'}</strong><br>
+                            <strong>${produto.name || produto.nome || 'Produto'}</strong> ${seloPromo}<br>
                             <small style="color: #666;">Categoria: ${produto.categoria || 'Geral'} | <strong>${precoDisplay}</strong></small>
+                            ${expiraInfo}
                         </div>
                     </div>
                     <div style="display: flex; gap: 5px;">
-                        <button onclick="prepararEdicaoProduto('${prodId}', '${nomeProd}', ${precoVal}, '${catProd}', '${descProd}')" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
+                        <button onclick="prepararEdicaoProduto('${prodId}')" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
                         <button onclick="deletarProdutoAdmin('${prodId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Excluir</button>
                     </div>
                 </div>
             `;
         });
-        console.log("🔍 [4] Renderização com BOTÕES concluída com sucesso!");
     } catch (err) {
-        console.error("🔥 ERRO:", err);
+        console.error("Erro ao carregar produtos:", err);
     }
 }
-
-// Vincula ao escopo global
 window.carregarProdutosAdmin = carregarProdutosAdmin;
-// ⚠️ NÃO COLOQUE carregarProdutosAdmin(); AQUI EMBAIXO! DEIXE VAZIO!
 
 window.salvarProduto = async function(event) {
     event.preventDefault(); 
     
-    var nomeInput = document.getElementById('nomeProduto') || document.querySelector('input[name="nome"]') || document.querySelectorAll('input[type="text"]')[0];
-    var precoInput = document.getElementById('precoProduto') || document.querySelector('input[name="preco"]') || document.querySelector('input[type="number"]');
-    var catInput = document.getElementById('categoriaProduto') || document.querySelector('select');
+    var nomeInput = document.getElementById('nome');
+    var precoInput = document.getElementById('preco');
+    var catInput = document.getElementById('categoria');
+    var descInput = document.getElementById('desc');
+    
+    var isPromo = document.getElementById('promocao') ? document.getElementById('promocao').checked : false;
+    var precoPromoVal = document.getElementById('preco-promo') ? parseFloat(document.getElementById('preco-promo').value) || 0 : 0;
+    var promoExpiraVal = document.getElementById('promo-expira-em') ? document.getElementById('promo-expira-em').value : '';
 
     var nomeVal = nomeInput ? nomeInput.value : '';
     var precoVal = precoInput ? precoInput.value : '0';
     var catVal = catInput ? catInput.value : 'Geral';
+    var descVal = descInput ? descInput.value : '';
 
-    if (!nomeVal || nomeVal === '') {
-        return alert('Preencha o nome do produto!');
-    }
+    if (!nomeVal) return alert('Preencha o nome do produto!');
 
-    // Função interna para prosseguir após pegar a imagem (ou manter a antiga se estiver editando)
     var executarSalvamento = async function(imagemUrl) {
         var dadosProduto = {
             name: nomeVal,
             preco: precoVal,
             categoria: catVal,
-            imagem: imagemUrl || ''
+            descricao: descVal,
+            imagem: imagemUrl || '',
+            promocao: isPromo,
+            preco_promo: precoPromoVal,
+            promo_expira: promoExpiraVal
         };
 
-if (window.editandoProdutoId) {
-    await window.updateDoc(window.doc(window.db, "produtos", window.editandoProdutoId), dadosProduto);
-    alert("Produto atualizado com sucesso!");
-    window.editandoProdutoId = null;
-} else {
-    dadosProduto.id = 'prod_' + Date.now();
-    await window.salvarNaNuvem("produtos", dadosProduto);
-    alert("Produto salvo na nuvem com sucesso!");
-}
+        if (window.editandoProdutoId) {
+            await window.updateDoc(window.doc(window.db, "produtos", window.editandoProdutoId), dadosProduto);
+            alert("Produto atualizado com sucesso!");
+            window.editandoProdutoId = null;
+            
+            var btnSalvar = document.querySelector('form#form-produto button[type="submit"]');
+            if (btnSalvar) btnSalvar.innerText = 'Salvar Produto';
+        } else {
+            dadosProduto.id = 'prod_' + Date.now();
+            await window.salvarNaNuvem("produtos", dadosProduto);
+            alert("Produto salvo na nuvem com sucesso!");
+        }
 
-        var formEl = document.getElementById('form-produto') || document.querySelector('form');
-        if (formEl) formEl.reset();
+        var formEl = document.getElementById('form-produto');
+        if (formEl) {
+            formEl.reset();
+            document.getElementById('grupo-preco-promo').style.display = 'none';
+        }
         
         if (typeof carregarProdutosAdmin === 'function') {
             carregarProdutosAdmin();
         }
     };
 
-    // Verifica se o usuário selecionou uma nova imagem
     var fileInput = document.getElementById('imagem-file');
     if (fileInput && fileInput.files && fileInput.files[0]) {
         var file = fileInput.files[0], reader = new FileReader();
@@ -822,68 +852,11 @@ if (window.editandoProdutoId) {
         };
         reader.readAsDataURL(file);
     } else {
-        // Se estiver editando e não mudou a foto, mantém o que já tava ou manda vazio
-        await executarSalvamento(null);
-    }
-};
-        window.excluirProduto = function(id) { if (confirm('Deseja excluir este produto?')) { produtos = produtos.filter(function(p) { return p.id !== id; }); localStorage.setItem('tati_products', JSON.stringify(produtos)); window.carregarProdutosAdmin(); } };
-
-window.salvarInsumo = async function(event) {
-    if (event && typeof event.preventDefault === 'function') {
-        event.preventDefault();
-    }
-
-    try {
-        var nomeInput = document.getElementById('ins-nome');
-        if (!nomeInput || !nomeInput.value.trim()) {
-            alert('Preencha o nome do insumo!');
-            return;
+        var imagemAntiga = '';
+        if (window.editandoProdutoId && window.produtosAdminCache[window.editandoProdutoId]) {
+            imagemAntiga = window.produtosAdminCache[window.editandoProdutoId].imagem || '';
         }
-
-        var qtdInput = document.getElementById('ins-quantidade');
-        var valorInput = document.getElementById('ins-valor');
-        var fornecedorInput = document.getElementById('ins-fornecedor');
-        var dataInput = document.getElementById('ins-data');
-
-        var dadosInsumo = {
-            nome: nomeInput.value.trim(),
-            quantidade: qtdInput && qtdInput.value ? Number(qtdInput.value) : 0,
-            custo: valorInput && valorInput.value ? Number(valorInput.value) : 0,
-            fornecedor: fornecedorInput ? fornecedorInput.value.trim() : '',
-            dataCompra: dataInput ? dataInput.value : '',
-            lojaId: typeof LOJA_ID !== 'undefined' ? LOJA_ID : "tati_bolos"
-        };
-
-        if (window.editandoInsumoId) {
-            await window.updateDoc(window.doc(window.db, "insumos", window.editandoInsumoId), dadosInsumo);
-            alert("Insumo atualizado com sucesso!");
-            window.editandoInsumoId = null;
-        } else {
-            dadosInsumo.id = 'ins_' + Date.now();
-            var sucesso = await window.salvarInsumoNaNuvem(dadosInsumo);
-            if (!sucesso) {
-                alert("Erro ao salvar insumo na nuvem.");
-                return;
-            }
-            alert("Insumo salvo na nuvem com sucesso!");
-        }
-
-        // Limpa os campos
-        if (nomeInput) nomeInput.value = '';
-        if (qtdInput) qtdInput.value = '';
-        if (valorInput) valorInput.value = '';
-        if (fornecedorInput) fornecedorInput.value = '';
-        if (dataInput) dataInput.value = '';
-
-        var btnSalvar = document.getElementById('btn-salvar-insumo');
-        if(btnSalvar) btnSalvar.innerText = 'Salvar Insumo';
-
-        if (typeof carregarInsumosAdmin === 'function') {
-            carregarInsumosAdmin();
-        }
-    } catch (error) {
-        console.error("Erro detalhado ao salvar/atualizar insumo:", error);
-        alert("Erro ao salvar/atualizar insumo. Verifique o console.");
+        await executarSalvamento(imagemAntiga);
     }
 };
 
@@ -1463,137 +1436,147 @@ window.salvarCliente = async function(event) {
     }
 };
 
+window.clientesAdminCache = {};
+
 window.carregarClientesAdmin = async function() {
     var container = document.getElementById('lista-clientes-admin');
     if (!container) return;
     
-    container.innerHTML = '<p style="padding: 10px;">Carregando clientes da nuvem...</p>';
-    var clientesNuvem = await window.obterClientesDaNuvem();
-    container.innerHTML = '';
-
-    if (clientesNuvem.length === 0) {
-        container.innerHTML = '<p style="color: #888; padding: 10px;">Nenhum cliente cadastrado na nuvem.</p>';
-        return;
-    }
-
-    clientesNuvem.forEach(function(cli) {
-        var telefoneLimpo = (cli.whatsapp || cli.telefone || '').replace(/\D/g, '');
-        var badgePedidos = (cli.pedidos || 0) > 5 ? '<span style="background: gold; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 5px;">VIP</span>' : '';
-        
-        container.innerHTML += `
-            <div class="card" style="border-left: 4px solid var(--pink-primary, #d63384); background: #fff; padding: 12px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <strong>${cli.nome}</strong> ${badgePedidos}<br>
-                    <small style="color: #666;">CPF: ${cli.cpf || 'Não informado'} | Tel: ${telefoneLimpo || cli.whatsapp || 'N/A'} | Pedidos: ${cli.pedidos || 0}</small>
-                </div>
-                <div style="display: flex; gap: 6px;">
-                    <button onclick="somarPedidoCliente('${cli.firestoreId}', ${cli.pedidos || 0})" style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Adicionar Pedido">+ Pedido</button>
-                    <button onclick="prepararEdicaoProduto('${p.firestoreId}', '${p.nome}', ${p.preco}, '${p.categoria}', '${p.descricao}')" style="background: #ff9800; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
-                    <button onclick="excluirCliente('${cli.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Excluir">Excluir</button>
-                </div>
-            </div>
-        `;
-    });
-};
-
-window.somarPedidoCliente = async function(firestoreId, pedidosAtuais) {
-    var novoTotal = (pedidosAtuais || 0) + 1;
-    var sucesso = await window.atualizarClienteNaNuvem(firestoreId, { pedidos: novoTotal });
-    if (sucesso) {
-        window.carregarClientesAdmin();
-    } else {
-        alert("Erro ao atualizar os pedidos do cliente.");
-    }
-};
-
-window.excluirCliente = async function(firestoreId) {
-    if (!confirm('Remover o cadastro desse cliente da nuvem?')) return;
-    var sucesso = await window.excluirClienteDaNuvem(firestoreId);
-    if (sucesso) {
-        alert("Cliente removido com sucesso!");
-        window.carregarClientesAdmin();
-    } else {
-        alert("Erro ao excluir o cliente.");
-    }
-};
-
-// GESTÃO DE FUNCIONÁRIOS (NUVEM)
-window.salvarFuncionario = async function(event) {
-    event.preventDefault();
-    var cpfInput = document.getElementById('func-cpf');
-    if (!cpfInput) return;
+    container.innerHTML = '<p style="padding: 10px; text-align: center;">Carregando clientes do banco...</p>';
     
-    var cpf = cpfInput.value.replace(/\D/g, '');
-    if(cpf.length !== 11) return alert("CPF inválido (11 dígitos).");
-    
-    var novoFunc = {
-        id: 'func_' + Date.now(),
-        nome: document.getElementById('func-nome').value,
-        cpf: cpf,
-        telefone: document.getElementById('func-tel').value,
-        funcao: document.getElementById('func-cargo').value,
-        salario: parseFloat(document.getElementById('func-salario').value) || 0,
-        endereco: document.getElementById('func-endereco').value,
-        senha: document.getElementById('func-senha').value.trim(),
-        acessos: {
-            produtos: document.getElementById('acc-produtos').checked,
-            encomendas: document.getElementById('acc-encomendas').checked,
-            pdv: document.getElementById('acc-pdv').checked,
-            pedidos: document.getElementById('acc-pedidos').checked
+    try {
+        var querySnapshot = await getDocs(collection(window.db, "clientes"));
+        window.clientesAdminCache = {};
+        var clientesNuvem = [];
+
+        querySnapshot.forEach(function(doc) {
+            var cli = doc.data();
+            cli.firestoreId = doc.id;
+            window.clientesAdminCache[cli.firestoreId] = cli;
+            clientesNuvem.push(cli);
+        });
+
+        if (clientesNuvem.length === 0) {
+            container.innerHTML = '<p style="color: #888; padding: 10px; text-align: center;">Nenhum cliente cadastrado na nuvem.</p>';
+            return;
         }
+
+        container.innerHTML = '';
+
+        clientesNuvem.forEach(function(cli) {
+            var cliId = cli.firestoreId || cli.id;
+            var telefoneLimpo = (cli.whatsapp || cli.telefone || '').replace(/\D/g, '');
+            var badgePedidos = (cli.pedidos || 0) > 5 ? '<span style="background: gold; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 5px;">VIP</span>' : '';
+            
+            container.innerHTML += `
+                <div class="card" style="border-left: 4px solid var(--pink); background: #fff; padding: 12px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>${cli.nome}</strong> ${badgePedidos}<br>
+                        <small style="color: #666;">CPF: ${cli.cpf || 'Não informado'} | Tel: ${telefoneLimpo || cli.whatsapp || 'N/A'} | Pedidos: ${cli.pedidos || 0}</small>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button onclick="somarPedidoCliente('${cliId}', ${cli.pedidos || 0})" style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Adicionar Pedido">+ Pedido</button>
+                        <button onclick="prepararEdicaoCliente('${cliId}')" style="background: #ff9800; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Editar">✏️ Editar</button>
+                        <button onclick="excluirCliente('${cliId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Excluir">Excluir</button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        console.error("Erro ao carregar clientes:", err);
+    }
+};
+window.carregarClientesAdmin = carregarClientesAdmin;
+
+window.editandoClienteId = null;
+
+window.prepararEdicaoCliente = function(cliId) {
+    var cli = window.clientesAdminCache[cliId];
+    if (!cli) {
+        console.error("Cliente não encontrado no cache para o ID:", cliId, window.clientesAdminCache);
+        return alert("Erro ao carregar dados do cliente.");
+    }
+
+    window.editandoClienteId = cliId;
+    console.log("Dados do cliente carregados para edição:", cli);
+
+    // Varre todos os inputs do formulário de clientes para preencher pelo tipo ou ordem, se os IDs falharem
+    var formCliente = document.getElementById('form-cliente') || document.querySelector('form');
+    
+    // Tenta preencher pelos IDs mais comuns
+    var campoNome = document.getElementById('cli-nome') || (formCliente ? formCliente.querySelector('input[type="text"]'): null);
+    var campoCpf = document.getElementById('cli-cpf');
+    var campoWhats = document.getElementById('cli-whatsapp') || document.getElementById('cli-tel');
+    var campoEnd = document.getElementById('cli-endereco');
+    var campoObs = document.getElementById('cli-obs') || document.querySelector('textarea');
+
+    if (campoNome) campoNome.value = cli.nome || '';
+    if (campoCpf) campoCpf.value = cli.cpf || '';
+    if (campoWhats) campoWhats.value = cli.whatsapp || cli.telefone || '';
+    if (campoEnd) campoEnd.value = cli.endereco || '';
+    if (campoObs) campoObs.value = cli.obs || '';
+
+    // Muda o texto do botão de salvar para "Atualizar"
+    var btnSalvar = document.querySelector('#form-cliente button[type="submit"]') || document.querySelector('form button[type="submit"]');
+    if (btnSalvar) btnSalvar.innerText = 'Atualizar Cliente 🎁';
+    
+    // Sobe a tela suavemente até o formulário
+    if (formCliente) {
+        window.scrollTo({ top: formCliente.offsetTop - 50, behavior: 'smooth' });
+    }
+};
+window.prepararEdicaoCliente = prepararEdicaoCliente;
+
+window.salvarCliente = async function(event) {
+    event.preventDefault(); 
+    var cpfInput = document.getElementById('cli-cpf');
+    var nomeInput = document.getElementById('cli-nome'); 
+    var whatsInput = document.getElementById('cli-whatsapp');
+    var endInput = document.getElementById('cli-endereco');
+    var obsInput = document.getElementById('cli-obs');
+    
+    var cpfLimpo = cpfInput ? cpfInput.value.trim() : '';
+    var nome = nomeInput ? nomeInput.value.trim() : 'Cliente';
+    var whatsapp = whatsInput ? whatsInput.value.trim() : '';
+    var endereco = endInput ? endInput.value.trim() : '';
+    var obs = obsInput ? obsInput.value.trim() : '';
+
+    if (!nome) return alert("Preencha o nome do cliente!");
+
+    var dadosCliente = {
+        cpf: cpfLimpo,
+        nome: nome,
+        whatsapp: whatsapp,
+        endereco: endereco,
+        obs: obs
     };
 
-    var sucesso = await window.salvarFuncionarioNaNuvem(novoFunc);
-    if (sucesso) {
-        var formEl = document.getElementById('form-funcionario');
-        if (formEl) formEl.reset();
-        alert("Funcionário cadastrado na nuvem com sucesso!");
-        if (typeof window.carregarFuncionariosAdmin === 'function') {
-            window.carregarFuncionariosAdmin();
-        }
-    } else {
-        alert("Erro ao cadastrar funcionário na nuvem.");
-    }
-};
-
-window.carregarFuncionariosAdmin = async function() {
-    var container = document.getElementById('lista-funcionarios-admin');
-    if (!container) return;
-    
-    container.innerHTML = '<p style="color: #666; text-align: center; padding: 10px;">Carregando funcionários da nuvem...</p>';
-    var funcionariosNuvem = await window.obterFuncionariosDaNuvem();
-    container.innerHTML = funcionariosNuvem.length === 0 ? '<p style="color: #666; text-align: center;">Nenhum funcionário cadastrado na nuvem.</p>' : '';
-    
-    funcionariosNuvem.forEach(function(f) {
-        var acc = f.acessos || {};
-        var permissoesStr = [acc.produtos?'Produtos':'', acc.encomendas?'Encomendas':'', acc.pdv?'PDV':'', acc.pedidos?'Pedidos Online':''].filter(Boolean).join(', ') || 'Nenhuma';
-        
-        container.innerHTML += `
-            <div style="background: white; border: 1px solid #ccc; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <strong style="color: var(--pink); font-size: 1.05rem;">${f.nome}</strong> (${f.funcao})<br>
-                    <span style="font-size: 0.85rem; color: #555;">Tel: ${f.telefone} | Salário: R$ ${Number(f.salario).toFixed(2)}</span><br>
-                    <span style="font-size: 0.8rem; color: #777;">Acessos permitidos: <strong>${permissoesStr}</strong></span><br>
-                    <span style="font-size: 0.8rem; color: #888;">Senha de acesso: <code style="background:#eee; padding:2px 4px; border-radius:4px;">${f.senha}</code></span>
-                </div>
-                <button onclick="prepararEdicaoProduto('${p.firestoreId}', '${p.nome}', ${p.preco}, '${p.categoria}', '${p.descricao}')" style="background: #ff9800; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
-                <button onclick="excluirFuncionario('${f.firestoreId}')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>
-            </div>
-        `;
-    });
-};
-
-window.excluirFuncionario = async function(firestoreId) {
-    if(confirm("Tem certeza que deseja remover este funcionário da nuvem?")) {
-        var sucesso = await window.excluirFuncionarioDaNuvem(firestoreId);
-        if (sucesso) {
-            alert("Funcionário removido com sucesso!");
-            window.carregarFuncionariosAdmin();
+    try {
+        if (window.editandoClienteId) {
+            await window.updateDoc(window.doc(window.db, "clientes", window.editandoClienteId), dadosCliente);
+            alert("Cliente atualizado com sucesso!");
+            window.editandoClienteId = null;
+            var btnSalvar = document.querySelector('#form-cliente button[type="submit"]');
+            if(btnSalvar) btnSalvar.innerText = 'Salvar Cliente 🎁';
         } else {
-            alert("Erro ao excluir o funcionário.");
+            dadosCliente.id = 'cli_' + Date.now();
+            dadosCliente.pedidos = 0;
+            dadosCliente.criadoEm = new Date().toLocaleString();
+            await window.addDoc(window.collection(window.db, "clientes"), dadosCliente);
+            alert("Cliente cadastrado na nuvem com sucesso!");
         }
+
+        var formEl = document.getElementById('form-cliente');
+        if (formEl) formEl.reset();
+        if (typeof window.carregarClientesAdmin === 'function') {
+            window.carregarClientesAdmin();
+        }
+    } catch (err) {
+        console.error("Erro ao salvar cliente:", err);
+        alert("Erro ao salvar cliente: " + err.message);
     }
 };
+window.salvarCliente = salvarCliente;
 
 // Variável de estado global para as mesas e última venda
 var mesasState = {};
@@ -1967,15 +1950,36 @@ window.mudarAba = function(aba, btn) {
     var secoes = document.querySelectorAll('.secao-painel');
     for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
 
-    if (aba === 'produtos') { document.getElementById('secao-produtos').style.display = 'block'; window.carregarProdutosAdmin(); window.renderizarOpcoesEncomendaAdmin(); } 
-    else if (aba === 'insumos') { document.getElementById('secao-insumos').style.display = 'block'; window.carregarInsumosAdmin(); } 
-    else if (aba === 'encomendas') { document.getElementById('secao-encomendas').style.display = 'block'; window.carregarEncomendasAdmin(); window.carregarZonasBalcao(); window.carregarOpcoesSelectBalcao(); } 
-    else if (aba === 'clientes') { document.getElementById('secao-clientes').style.display = 'block'; window.carregarClientesAdmin(); } 
-    else if (aba === 'funcionarios') { document.getElementById('secao-funcionarios').style.display = 'block'; window.carregarFuncionariosAdmin(); }
-    else if (aba === 'pdv') { document.getElementById('secao-pdv').style.display = 'block'; window.carregarPDV(); }
+    if (aba === 'produtos') { 
+        document.getElementById('secao-produtos').style.display = 'block'; 
+        window.carregarProdutosAdmin(); 
+        window.renderizarOpcoesEncomendaAdmin(); 
+    } 
+    else if (aba === 'insumos') { 
+        document.getElementById('secao-insumos').style.display = 'block'; 
+        window.carregarInsumosAdmin(); 
+    } 
+    else if (aba === 'encomendas') { 
+        document.getElementById('secao-encomendas').style.display = 'block'; 
+        window.carregarEncomendasAdmin(); 
+        window.carregarZonasBalcao(); 
+        window.carregarOpcoesSelectBalcao(); 
+    } 
+    else if (aba === 'clientes') { 
+        document.getElementById('secao-clientes').style.display = 'block'; 
+        window.carregarClientesAdmin(); // <--- CHAMA OS CLIENTES AQUI!
+    } 
+    else if (aba === 'funcionarios') { 
+        document.getElementById('secao-funcionarios').style.display = 'block'; 
+        window.carregarFuncionariosAdmin(); // <--- CHAMA OS FUNCIONÁRIOS AQUI!
+    }
+    else if (aba === 'pdv') { 
+        document.getElementById('secao-pdv').style.display = 'block'; 
+        window.carregarPDV(); 
+    }
     else if (aba === 'pedidos_online') { 
         document.getElementById('secao-pedidos_online').style.display = 'block'; 
-        window.renderizarPedidosDiarios(); // << CARREGA OS PEDIDOS NA HORA
+        window.renderizarPedidosDiarios(); 
     }
     
     if (btn) btn.classList.add('active');
@@ -2124,21 +2128,39 @@ window.concluirPedidoOnlineAdmin = async function(firestoreId) {
 // --- 1. PRODUTOS ---
 window.editandoProdutoId = null;
 
-window.prepararEdicaoProduto = function(firestoreId, name, preco, categoria, descricao) {
-    window.editandoProdutoId = firestoreId;
+window.prepararEdicaoProduto = function(prodId) {
+    var produto = window.produtosAdminCache[prodId];
+    if (!produto) return alert("Erro ao carregar dados para edição.");
+
+    window.editandoProdutoId = prodId;
     
-    var nomeInput = document.getElementById('nomeProduto') || document.querySelector('input[name="nome"]') || document.querySelectorAll('input[type="text"]')[0];
-    var precoInput = document.getElementById('precoProduto') || document.querySelector('input[name="preco"]') || document.querySelector('input[type="number"]');
-    var catInput = document.getElementById('categoriaProduto') || document.querySelector('select');
-    var descInput = document.getElementById('descricaoProduto') || document.querySelector('textarea');
+    var nomeInput = document.getElementById('nome');
+    var precoInput = document.getElementById('preco');
+    var catInput = document.getElementById('categoria');
+    var descInput = document.getElementById('desc');
+    var promoCheckbox = document.getElementById('promocao');
+    var precoPromoInput = document.getElementById('preco-promo');
+    var promoExpiraInput = document.getElementById('promo-expira-em');
+    var grupoPromo = document.getElementById('grupo-preco-promo');
 
-    if (nomeInput) nomeInput.value = name || '';
-    if (precoInput) precoInput.value = preco || 0;
-    if (catInput) catInput.value = categoria || 'Geral';
-    if (descInput) descInput.value = descricao || '';
+    if (nomeInput) nomeInput.value = produto.name || produto.nome || '';
+    if (precoInput) precoInput.value = produto.preco || 0;
+    if (catInput) catInput.value = produto.categoria || 'salgados';
+    if (descInput) descInput.value = produto.descricao || '';
+    
+    var isPromo = produto.promocao || false;
+    if (promoCheckbox) {
+        promoCheckbox.checked = isPromo;
+        if (grupoPromo) grupoPromo.style.display = isPromo ? 'block' : 'none';
+    }
+    
+    if (precoPromoInput) precoPromoInput.value = produto.preco_promo || '';
+    if (promoExpiraInput) promoExpiraInput.value = produto.promo_expira || '';
 
-    var btnSalvar = document.getElementById('btn-salvar-produto') || document.querySelector('form#form-produto button[type="submit"]');
+    var btnSalvar = document.querySelector('form#form-produto button[type="submit"]');
     if (btnSalvar) btnSalvar.innerText = 'Atualizar Produto';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     alert('Modo de edição ativado para o produto! Altere os dados e clique em Salvar.');
 };
@@ -2221,6 +2243,161 @@ window.deletarInsumoAdmin = async function(id) {
         alert('Erro ao excluir insumo.');
     }
 };
+
+window.funcionariosAdminCache = {};
+
+window.carregarFuncionariosAdmin = async function() {
+    var container = document.getElementById('lista-funcionarios-admin');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="color: #666; text-align: center; padding: 10px;">Carregando funcionários do banco...</p>';
+    
+    var tentativas = 0;
+    while (!window.db && tentativas < 25) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tentativas++;
+    }
+
+    if (!window.db) {
+        container.innerHTML = '<p style="color: red; text-align: center;">Erro: Conexão com Firebase falhou.</p>';
+        return;
+    }
+
+    try {
+        var querySnapshot = await window.getDocs(window.collection(window.db, "funcionarios"));
+        window.funcionariosAdminCache = {};
+        var funcionariosNuvem = [];
+        
+        querySnapshot.forEach(function(docSnap) {
+            var func = docSnap.data();
+            func.firestoreId = docSnap.id;
+            window.funcionariosAdminCache[func.firestoreId] = func;
+            funcionariosNuvem.push(func);
+        });
+
+        if (funcionariosNuvem.length === 0) {
+            container.innerHTML = '<p style="color: #666; text-align: center;">Nenhum funcionário cadastrado na nuvem.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        funcionariosNuvem.forEach(function(f) {
+            var fId = f.firestoreId || f.id;
+            var acc = f.acessos || {};
+            var permissoesStr = [acc.produtos?'Produtos':'', acc.encomendas?'Encomendas':'', acc.pdv?'PDV':'', acc.pedidos?'Pedidos Online':''].filter(Boolean).join(', ') || 'Nenhuma';
+            
+            container.innerHTML += `
+                <div style="background: white; border: 1px solid #ccc; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="color: var(--pink); font-size: 1.05rem;">${f.nome}</strong> (${f.funcao || 'Cargo'})<br>
+                        <span style="font-size: 0.85rem; color: #555;">Tel: ${f.telefone || 'N/A'} | Salário: R$ ${Number(f.salario || 0).toFixed(2)}</span><br>
+                        <span style="font-size: 0.8rem; color: #777;">Acessos permitidos: <strong>${permissoesStr}</strong></span><br>
+                        <span style="font-size: 0.8rem; color: #888;">Senha: <code style="background:#eee; padding:2px 4px; border-radius:4px;">${f.senha || ''}</code></span>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="prepararEdicaoFuncionario('${fId}')" style="background: #ff9800; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
+                        <button onclick="excluirFuncionarioAdmin('${fId}')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        console.error("Erro ao carregar funcionários:", err);
+        container.innerHTML = '<p style="color: red; text-align: center;">Erro ao carregar do banco.</p>';
+    }
+};
+window.carregarFuncionariosAdmin = carregarFuncionariosAdmin;
+
+window.editandoFuncionarioId = null;
+
+window.prepararEdicaoFuncionario = function(fId) {
+    var f = window.funcionariosAdminCache[fId];
+    if (!f) return alert("Erro ao carregar dados do funcionário.");
+
+    window.editandoFuncionarioId = fId;
+    if(document.getElementById('func-nome')) document.getElementById('func-nome').value = f.nome || '';
+    if(document.getElementById('func-cpf')) document.getElementById('func-cpf').value = f.cpf || '';
+    if(document.getElementById('func-tel')) document.getElementById('func-tel').value = f.telefone || '';
+    if(document.getElementById('func-cargo')) document.getElementById('func-cargo').value = f.funcao || '';
+    if(document.getElementById('func-salario')) document.getElementById('func-salario').value = f.salario || '';
+    if(document.getElementById('func-endereco')) document.getElementById('func-endereco').value = f.endereco || '';
+    if(document.getElementById('func-senha')) document.getElementById('func-senha').value = f.senha || '';
+    
+    var acc = f.acessos || {};
+    if(document.getElementById('acc-produtos')) document.getElementById('acc-produtos').checked = !!acc.produtos;
+    if(document.getElementById('acc-encomendas')) document.getElementById('acc-encomendas').checked = !!acc.encomendas;
+    if(document.getElementById('acc-pdv')) document.getElementById('acc-pdv').checked = !!acc.pdv;
+    if(document.getElementById('acc-pedidos')) document.getElementById('acc-pedidos').checked = !!acc.pedidos;
+
+    var btnSalvar = document.querySelector('#form-funcionario button[type="submit"]');
+    if(btnSalvar) btnSalvar.innerText = 'Atualizar Funcionário 👩‍🍳';
+    
+    window.scrollTo({ top: document.getElementById('form-funcionario').offsetTop - 50, behavior: 'smooth' });
+};
+window.prepararEdicaoFuncionario = prepararEdicaoFuncionario;
+
+window.salvarFuncionario = async function(event) {
+    event.preventDefault();
+    var cpfInput = document.getElementById('func-cpf');
+    if (!cpfInput) return;
+    
+    var cpf = cpfInput.value.replace(/\D/g, '');
+    if(cpf.length !== 11) return alert("CPF inválido (11 dígitos).");
+    
+    var novoFunc = {
+        nome: document.getElementById('func-nome').value,
+        cpf: cpf,
+        telefone: document.getElementById('func-tel').value,
+        funcao: document.getElementById('func-cargo').value,
+        salario: parseFloat(document.getElementById('func-salario').value) || 0,
+        endereco: document.getElementById('func-endereco').value,
+        senha: document.getElementById('func-senha').value.trim(),
+        acessos: {
+            produtos: document.getElementById('acc-produtos').checked,
+            encomendas: document.getElementById('acc-encomendas').checked,
+            pdv: document.getElementById('acc-pdv').checked,
+            pedidos: document.getElementById('acc-pedidos').checked
+        }
+    };
+
+    try {
+        if (window.editandoFuncionarioId) {
+            await window.updateDoc(window.doc(window.db, "funcionarios", window.editandoFuncionarioId), novoFunc);
+            alert("Funcionário atualizado com sucesso!");
+            window.editandoFuncionarioId = null;
+            var btnSalvar = document.querySelector('#form-funcionario button[type="submit"]');
+            if(btnSalvar) btnSalvar.innerText = 'Salvar Funcionário 👩‍🍳';
+        } else {
+            novoFunc.id = 'func_' + Date.now();
+            await window.addDoc(window.collection(window.db, "funcionarios"), novoFunc);
+            alert("Funcionário cadastrado na nuvem com sucesso!");
+        }
+
+        var formEl = document.getElementById('form-funcionario');
+        if (formEl) formEl.reset();
+        if (typeof window.carregarFuncionariosAdmin === 'function') {
+            window.carregarFuncionariosAdmin();
+        }
+    } catch (err) {
+        console.error("Erro ao salvar funcionário:", err);
+        alert("Erro ao salvar funcionário: " + err.message);
+    }
+};
+window.salvarFuncionario = salvarFuncionario;
+
+window.excluirFuncionarioAdmin = async function(fId) {
+    if(!confirm("Deseja realmente excluir este funcionário?")) return;
+    try {
+        await window.deleteDoc(window.doc(window.db, "funcionarios", fId));
+        alert("Funcionário excluído com sucesso!");
+        window.carregarFuncionariosAdmin();
+    } catch(err) {
+        console.error("Erro ao excluir:", err);
+        alert("Erro ao excluir funcionário.");
+    }
+};
+window.excluirFuncionarioAdmin = excluirFuncionarioAdmin;
 
     </script>
     <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->

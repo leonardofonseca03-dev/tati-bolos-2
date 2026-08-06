@@ -158,28 +158,6 @@ window.excluirOpcaoEncomendaDaNuvem = async function(firestoreId) {
 window.salvarNaNuvem = window.salvarProdutoNaNuvem;
 // Atalhos globais para garantir compatibilidade com o admin.html antigo
 window.salvarNaNuvem = window.salvarProdutoNaNuvem;
-window.carregarProdutosAdmin = async function() {
-    let container = document.getElementById('lista-produtos-admin') || document.getElementById('lista-produtos');
-    if (!container) return;
-    
-    container.innerHTML = "<p style='padding: 10px;'>Carregando produtos da nuvem...</p>";
-    let produtos = await window.obterProdutosDaNuvem();
-    container.innerHTML = "";
-    
-    if (produtos.length === 0) {
-        container.innerHTML = "<p style='padding: 10px; color: #666;'>Nenhum produto cadastrado na nuvem.</p>";
-        return;
-    }
-
-    produtos.forEach(p => {
-        container.innerHTML += `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
-                <div><strong>${p.nome || p.name}</strong> - R$ ${Number(p.preco || p.precoOriginal || 0).toFixed(2)}</div>
-                <button onclick="excluirProdutoAdmin('${p.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Excluir</button>
-            </div>
-        `;
-    });
-};
 
 window.excluirProdutoAdmin = async function(firestoreId) {
     if (!confirm("Deseja realmente excluir este produto da nuvem?")) return;
@@ -263,38 +241,163 @@ window.excluirClienteDaNuvem = async function(firestoreId) {
 };
 
 // Atalhos de compatibilidade para o admin.html
+// Gestão Completa de Clientes (Listagem, Edição e Salvamento)
+window.clientesAdminCache = {};
+
 window.carregarClientesAdmin = async function() {
     let container = document.getElementById('lista-clientes-admin') || document.getElementById('lista-clientes');
     if (!container) return;
     
     container.innerHTML = "<p style='padding: 10px;'>Carregando clientes da nuvem...</p>";
-    let clientes = await window.obterClientesDaNuvem();
-    container.innerHTML = "";
     
-    if (clientes.length === 0) {
-        container.innerHTML = "<p style='padding: 10px; color: #666;'>Nenhum cliente cadastrado na nuvem.</p>";
+    var tentativas = 0;
+    while (!window.db && tentativas < 25) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tentativas++;
+    }
+
+    if (!window.db) {
+        container.innerHTML = '<p style="color: red; text-align: center;">Erro: Conexão com Firebase falhou.</p>';
         return;
     }
 
-    clientes.forEach(c => {
-        container.innerHTML += `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
-                <div><strong>${c.nome || c.name || 'Cliente'}</strong> - ${c.telefone || c.phone || 'Sem telefone'}</div>
-                <button onclick="excluirClienteAdmin('${c.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Excluir</button>
-            </div>
-        `;
-    });
+    try {
+        var querySnapshot = await window.getDocs(window.collection(window.db, "clientes"));
+        window.clientesAdminCache = {};
+        var clientesNuvem = [];
+
+        querySnapshot.forEach(function(docSnap) {
+            var cli = docSnap.data();
+            cli.firestoreId = docSnap.id;
+            window.clientesAdminCache[cli.firestoreId] = cli;
+            clientesNuvem.push(cli);
+        });
+
+        if (clientesNuvem.length === 0) {
+            container.innerHTML = "<p style='padding: 10px; color: #666;'>Nenhum cliente cadastrado na nuvem.</p>";
+            return;
+        }
+
+        container.innerHTML = "";
+
+        clientesNuvem.forEach(cli => {
+            var cliId = cli.firestoreId || cli.id;
+            var telefoneLimpo = (cli.whatsapp || cli.telefone || '').replace(/\D/g, '');
+            var badgePedidos = (cli.pedidos || 0) > 5 ? '<span style="background: gold; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 5px;">VIP</span>' : '';
+
+            container.innerHTML += `
+                <div class="card" style="border-left: 4px solid var(--pink); background: #fff; padding: 12px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>${cli.nome || cli.name || 'Cliente'}</strong> ${badgePedidos}<br>
+                        <small style="color: #666;">CPF: ${cli.cpf || 'Não informado'} | Tel: ${telefoneLimpo || cli.whatsapp || cli.telefone || 'Sem telefone'} | Pedidos: ${cli.pedidos || 0}</small>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button onclick="somarPedidoCliente('${cliId}', ${cli.pedidos || 0})" style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Adicionar Pedido">+ Pedido</button>
+                        <button onclick="prepararEdicaoCliente('${cliId}')" style="background: #ff9800; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Editar">✏️ Editar</button>
+                        <button onclick="excluirClienteAdmin('${cliId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Excluir">Excluir</button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        console.error("Erro ao carregar clientes:", err);
+        container.innerHTML = "<p style='color: red; padding: 10px;'>Erro ao carregar clientes do banco.</p>";
+    }
+};
+
+window.editandoClienteId = null;
+
+window.prepararEdicaoCliente = function(cliId) {
+    var cli = window.clientesAdminCache[cliId];
+    if (!cli) {
+        alert("Erro: Cliente não encontrado no cache.");
+        return;
+    }
+
+    window.editandoClienteId = cliId;
+
+    // Seleção robusta dos inputs do formulário de clientes
+    var formCliente = document.getElementById('form-cliente') || document.querySelector('form');
+    
+    var inputNome = document.getElementById('cli-nome') || document.getElementById('nome') || (formCliente ? formCliente.querySelectorAll('input')[0] : null);
+    var inputCpf = document.getElementById('cli-cpf') || document.getElementById('cpf');
+    var inputWhats = document.getElementById('cli-whatsapp') || document.getElementById('whatsapp') || document.getElementById('telefone');
+    var inputEnd = document.getElementById('cli-endereco') || document.getElementById('endereco');
+    var inputObs = document.getElementById('cli-obs') || document.getElementById('obs') || document.querySelector('textarea');
+
+    if (inputNome) inputNome.value = cli.nome || '';
+    if (inputCpf) inputCpf.value = cli.cpf || '';
+    if (inputWhats) inputWhats.value = cli.whatsapp || cli.telefone || '';
+    if (inputEnd) inputEnd.value = cli.endereco || '';
+    if (inputObs) inputObs.value = cli.obs || '';
+
+    var btnSalvar = document.querySelector('#form-cliente button[type="submit"]') || document.querySelector('form button[type="submit"]');
+    if (btnSalvar) btnSalvar.innerText = 'Atualizar Cliente 🎁';
+    
+    if (formCliente) {
+        window.scrollTo({ top: formCliente.offsetTop - 50, behavior: 'smooth' });
+    }
+};
+
+window.salvarCliente = async function(event) {
+    event.preventDefault(); 
+    var formCliente = document.getElementById('form-cliente') || document.querySelector('form');
+    
+    var inputNome = document.getElementById('cli-nome') || document.getElementById('nome') || (formCliente ? formCliente.querySelectorAll('input')[0] : null);
+    var inputCpf = document.getElementById('cli-cpf') || document.getElementById('cpf');
+    var inputWhats = document.getElementById('cli-whatsapp') || document.getElementById('whatsapp') || document.getElementById('telefone');
+    var inputEnd = document.getElementById('cli-endereco') || document.getElementById('endereco');
+    var inputObs = document.getElementById('cli-obs') || document.getElementById('obs') || document.querySelector('textarea');
+
+    var nome = inputNome ? inputNome.value.trim() : '';
+    var cpf = inputCpf ? inputCpf.value.trim() : '';
+    var whatsapp = inputWhats ? inputWhats.value.trim() : '';
+    var endereco = inputEnd ? inputEnd.value.trim() : '';
+    var obs = inputObs ? inputObs.value.trim() : '';
+
+    if (!nome) return alert("Preencha o nome do cliente!");
+
+    var dadosCliente = {
+        cpf: cpf,
+        nome: nome,
+        whatsapp: whatsapp,
+        endereco: endereco,
+        obs: obs
+    };
+
+    try {
+        if (window.editandoClienteId) {
+            await window.updateDoc(window.doc(window.db, "clientes", window.editandoClienteId), dadosCliente);
+            alert("Cliente atualizado com sucesso!");
+            window.editandoClienteId = null;
+            var btnSalvar = document.querySelector('#form-cliente button[type="submit"]') || document.querySelector('form button[type="submit"]');
+            if(btnSalvar) btnSalvar.innerText = 'Salvar Cliente 🎁';
+        } else {
+            dadosCliente.id = 'cli_' + Date.now();
+            dadosCliente.pedidos = 0;
+            dadosCliente.criadoEm = new Date().toLocaleString();
+            await window.addDoc(window.collection(window.db, "clientes"), dadosCliente);
+            alert("Cliente cadastrado na nuvem com sucesso!");
+        }
+
+        if (formCliente) formCliente.reset();
+        if (typeof window.carregarClientesAdmin === 'function') {
+            window.carregarClientesAdmin();
+        }
+    } catch (err) {
+        console.error("Erro ao salvar cliente:", err);
+        alert("Erro ao salvar cliente: " + err.message);
+    }
 };
 
 window.excluirClienteAdmin = async function(firestoreId) {
     if (!confirm("Deseja realmente excluir este cliente da nuvem?")) return;
-    let sucesso = await window.excluirClienteDaNuvem(firestoreId);
-    if (sucesso) {
+    try {
+        await window.deleteDoc(window.doc(window.db, "clientes", firestoreId));
         alert("Cliente excluído com sucesso!");
-        if (typeof window.carregarClientesAdmin === 'function') {
-            window.carregarClientesAdmin();
-        }
-    } else {
+        window.carregarClientesAdmin();
+    } catch (err) {
+        console.error("Erro ao excluir:", err);
         alert("Erro ao excluir cliente.");
     }
 };
@@ -304,6 +407,7 @@ document.addEventListener("DOMContentLoaded", function() {
         window.carregarClientesAdmin();
     }
 });
+
 // ==========================================
 // 5. MÓDULO DE FUNCIONÁRIOS (NUVEM)
 // ==========================================
@@ -342,36 +446,78 @@ window.excluirFuncionarioDaNuvem = async function(firestoreId) {
 };
 
 // Compatibilidade com o admin.html
+window.funcionariosAdminCache = {};
+
 window.carregarFuncionariosAdmin = async function() {
     let container = document.getElementById('lista-funcionarios-admin') || document.getElementById('lista-funcionarios');
     if (!container) return;
     
     container.innerHTML = "<p style='padding: 10px;'>Carregando funcionários da nuvem...</p>";
-    let funcionarios = await window.obterFuncionariosDaNuvem();
-    container.innerHTML = "";
     
-    if (funcionarios.length === 0) {
-        container.innerHTML = "<p style='padding: 10px; color: #666;'>Nenhum funcionário cadastrado na nuvem.</p>";
+    var tentativas = 0;
+    while (!window.db && tentativas < 25) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tentativas++;
+    }
+
+    if (!window.db) {
+        container.innerHTML = '<p style="color: red; text-align: center;">Erro: Conexão com Firebase falhou.</p>';
         return;
     }
 
-    funcionarios.forEach(f => {
-        container.innerHTML += `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
-                <div><strong>${f.nome || f.name}</strong> - Cargo: ${f.cargo || f.funcao || 'Geral'}</div>
-                <button onclick="excluirFuncionarioAdmin('${f.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Excluir</button>
-            </div>
-        `;
-    });
+    try {
+        var querySnapshot = await window.getDocs(window.collection(window.db, "funcionarios"));
+        window.funcionariosAdminCache = {};
+        var funcionariosNuvem = [];
+        
+        querySnapshot.forEach(function(docSnap) {
+            var func = docSnap.data();
+            func.firestoreId = docSnap.id;
+            window.funcionariosAdminCache[func.firestoreId] = func;
+            funcionariosNuvem.push(func);
+        });
+
+        if (funcionariosNuvem.length === 0) {
+            container.innerHTML = "<p style='padding: 10px; color: #666;'>Nenhum funcionário cadastrado na nuvem.</p>";
+            return;
+        }
+
+        container.innerHTML = "";
+
+        funcionariosNuvem.forEach(f => {
+            var fId = f.firestoreId || f.id;
+            var acc = f.acessos || {};
+            var permissoesStr = [acc.produtos?'Produtos':'', acc.encomendas?'Encomendas':'', acc.pdv?'PDV':'', acc.pedidos?'Pedidos Online':''].filter(Boolean).join(', ') || 'Nenhuma';
+
+            container.innerHTML += `
+                <div style="background: white; border: 1px solid #ccc; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="color: var(--pink); font-size: 1.05rem;">${f.nome || f.name}</strong> (${f.funcao || f.cargo || 'Cargo'})<br>
+                        <span style="font-size: 0.85rem; color: #555;">Tel: ${f.telefone || 'N/A'} | Salário: R$ ${Number(f.salario || 0).toFixed(2)}</span><br>
+                        <span style="font-size: 0.8rem; color: #777;">Acessos permitidos: <strong>${permissoesStr}</strong></span><br>
+                        <span style="font-size: 0.8rem; color: #888;">Senha: <code style="background:#eee; padding:2px 4px; border-radius:4px;">${f.senha || ''}</code></span>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="prepararEdicaoFuncionario('${fId}')" style="background: #ff9800; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
+                        <button onclick="excluirFuncionarioAdmin('${fId}')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        console.error("Erro ao carregar funcionários:", err);
+        container.innerHTML = "<p style='color: red; padding: 10px;'>Erro ao carregar funcionários do banco.</p>";
+    }
 };
 
 window.excluirFuncionarioAdmin = async function(firestoreId) {
     if (!confirm("Deseja realmente excluir este funcionário da nuvem?")) return;
-    let sucesso = await window.excluirFuncionarioDaNuvem(firestoreId);
-    if (sucesso) {
+    try {
+        await window.deleteDoc(window.doc(window.db, "funcionarios", firestoreId));
         alert("Funcionário excluído com sucesso!");
         window.carregarFuncionariosAdmin();
-    } else {
+    } catch (err) {
+        console.error("Erro ao excluir:", err);
         alert("Erro ao excluir funcionário.");
     }
 };
@@ -381,6 +527,7 @@ document.addEventListener("DOMContentLoaded", function() {
         window.carregarFuncionariosAdmin();
     }
 });
+
 // ==========================================
 // 6. MÓDULO DE PDV, MESAS E VENDAS (NUVEM)
 // ==========================================
