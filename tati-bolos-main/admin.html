@@ -162,13 +162,15 @@
             <h2 style="color: var(--pink); margin-top: 0;">🍰 Tati Amor Doce</h2>
             <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Digite sua senha de acesso ao painel</p>
             <form onsubmit="fazerLogin(event)">
+<div class="form-group" style="text-align: left; margin-bottom: 10px;">
+                    <label>Usuário / CPF:</label>
+                    <input type="text" id="usuario-login" required placeholder="Digite seu usuário ou CPF" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
                 <div class="form-group" style="text-align: left;">
                     <label>Senha:</label>
-                    <input type="password" id="senha-login" required placeholder="Digite sua senha..." style="text-align: center; font-size: 1.1rem; letter-spacing: 2px;">
+                    <input type="password" id="senha-login" required placeholder="Digite sua senha" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
-                <button type="submit" class="btn-primary" style="margin-top: 10px;">Entrar no Painel 🔓</button>
-            </form>
-            <p style="font-size: 0.75rem; color: #999; margin-top: 20px;">Senha mestre padrão: <strong>tati123</strong></p>
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 15px;">Entrar no Painel 🔒</button>            <p style="font-size: 0.75rem; color: #999; margin-top: 20px;">Senha mestre padrão: <strong>tati123</strong></p>
         </div>
     </div>
 
@@ -187,7 +189,7 @@
     </header>
 
     <main>
-        <div class="nav-tabs" id="menu-abas-admin">
+<div class="nav-tabs" id="menu-abas-admin">
             <button class="tab-btn active" data-aba="produtos" onclick="mudarAba('produtos', this)">Produtos & Encomendas</button>
             <button class="tab-btn" data-aba="insumos" onclick="mudarAba('insumos', this)">Insumos</button>
             <button class="tab-btn" data-aba="encomendas" onclick="mudarAba('encomendas', this)">Encomendas</button>
@@ -198,6 +200,7 @@
                 Pedidos Online 🔔
                 <span id="badge-pedidos" class="badge">0</span>
             </button>
+            <button class="tab-btn" data-aba="configuracoes" onclick="mudarAba('configuracoes', this)">⚙️ Configurações</button>
         </div>
 
         <div id="secao-produtos" class="secao-painel">
@@ -431,6 +434,29 @@
             </div>
         </div>
 
+<!-- Seção Configurações e Backup -->
+        <div id="secao-configuracoes" class="secao-painel" style="display: none;">
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--pink);">⚙️ Configurações e Segurança do Sistema</h3>
+                <p style="font-size: 0.85rem; color: #666; margin-top: -10px;">Gerencie o backup dos dados e as preferências do painel.</p>
+
+                <!-- Card de Backup -->
+                <div style="background: white; border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <h3 style="color: var(--pink); margin-top: 0; margin-bottom: 10px;">💾 Backup do Banco de Dados (Firestore)</h3>
+                    <p style="font-size: 0.9rem; color: #555; margin-bottom: 15px;">
+                        Baixe uma cópia de segurança com todos os seus produtos, clientes, funcionários e pedidos. Você também pode restaurar o sistema enviando um arquivo de backup anterior.
+                    </p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <button onclick="exportarBackupFirestore()" style="background: #28a745; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">📥 Exportar Backup (.JSON)</button>
+                        
+                        <label style="background: #ff9800; color: white; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; display: inline-block;">
+                            📤 Importar / Restaurar Backup
+                            <input type="file" id="input-importar-backup" accept=".json" onchange="importarBackupFirestore(event)" style="display: none;">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>    
     </main>
 
     <div id="area-impressao"></div>
@@ -579,7 +605,8 @@
             </div>
         </div>
     </div>
-<script type="module" src="config.js"></script>
+
+<script type="module" src="config.js?v=2"></script>
 
     <script>
         var produtos = []; try { produtos = JSON.parse(localStorage.getItem('tati_products')) || []; } catch(e) { produtos = []; }
@@ -623,64 +650,75 @@
             mesasState['balcao'] = { nome: 'Balcão / Viagem', itens: [], status: 'livre' };
         }
 
-// LOGIN E PERMISSÕES
-// LOGIN E PERMISSÕES
+// ==========================================
+// CONTROLE DE LOGIN, LOGOUT E PERMISSÕES
+// ==========================================
+
 window.fazerLogin = function(event) {
     event.preventDefault();
-    var senha = document.getElementById('senha-login').value.trim();
-    if (senha === 'tati123') {
-        usuarioLogado = { tipo: 'mestre', nome: 'Tati (Mestre)' };
+    var usuarioInput = document.getElementById('usuario-login').value.trim().toLowerCase();
+    var senhaInput = document.getElementById('senha-login').value.trim();
+    
+    // Credenciais Mestre (Tati)
+    if ((usuarioInput === 'tati' || usuarioInput === 'admin') && senhaInput === 'tati123') {
+        window.usuarioLogado = { tipo: 'mestre', nome: 'Tati (Mestre)' };
         document.getElementById('modal-login').style.display = 'none';
         document.getElementById('usuario-logado-txt').innerText = "Logado como: Mestre (Tati)";
-        console.log("🔓 Login Tati aprovado! Carregando painel...");
-        aplicarPermissoes(); // Ele já chama a aba de produtos e o carregamento!
+        window.aplicarPermissoes();
         return;
     }
-    var func = funcionariosTati.find(f => f.senha === senha);
+
+    // Procura na lista de funcionários (validando Usuário/CPF E Senha)
+    var func = window.funcionariosTati ? window.funcionariosTati.find(f => 
+        (f.usuario && f.usuario.toLowerCase() === usuarioInput || f.cpf === usuarioInput) && f.senha === senhaInput
+    ) : null;
+
     if (func) {
-        usuarioLogado = { tipo: 'funcionario', nome: func.nome, acessos: func.acessos };
+        window.usuarioLogado = { tipo: 'funcionario', nome: func.nome, acessos: func.acessos };
         document.getElementById('modal-login').style.display = 'none';
         document.getElementById('usuario-logado-txt').innerText = "Logado como: " + func.nome;
-        console.log("🔓 Login Funcionário aprovado! Carregando painel...");
-        aplicarPermissoes(); // Ele já chama a aba de produtos e o carregamento!
+        window.aplicarPermissoes();
         return;
     }
-    alert("Senha incorreta!");
+
+    alert("Usuário ou senha incorretos!");
 };
 
-        window.fazerLogout = function() {
-            usuarioLogado = null;
-            document.getElementById('senha-login').value = '';
-            document.getElementById('modal-login').style.display = 'flex';
-        };
+window.fazerLogout = function() {
+    window.usuarioLogado = null;
+    document.getElementById('senha-login').value = '';
+    document.getElementById('modal-login').style.display = 'flex';
+};
 
-        window.aplicarPermissoes = function() {
-            var botoesAba = document.querySelectorAll('.tab-btn');
-            var btnZonas = document.getElementById('btn-zonas');
-            var btnRelatorio = document.getElementById('btn-relatorio');
+window.aplicarPermissoes = function() {
+    var botoesAba = document.querySelectorAll('.tab-btn');
+    var btnZonas = document.getElementById('btn-zonas');
+    var btnRelatorio = document.getElementById('btn-relatorio');
 
-            if (usuarioLogado.tipo === 'mestre') {
-                botoesAba.forEach(b => b.style.display = 'flex');
-                btnZonas.style.display = 'inline-block';
-                btnRelatorio.style.display = 'inline-block';
-                window.mudarAba('produtos', document.querySelector('.tab-btn'));
-            } else {
-                btnZonas.style.display = 'none';
-                btnRelatorio.style.display = 'none';
-                var acc = usuarioLogado.acessos || {};
-                botoesAba.forEach(b => {
-                    var aba = b.getAttribute('data-aba');
-                    if (aba === 'produtos' || aba === 'insumos') b.style.display = acc.produtos ? 'flex' : 'none';
-                    else if (aba === 'encomendas') b.style.display = acc.encomendas ? 'flex' : 'none';
-                    else if (aba === 'pdv') b.style.display = acc.pdv ? 'flex' : 'none';
-                    else if (aba === 'pedidos_online') b.style.display = acc.pedidos ? 'flex' : 'none';
-                    else b.style.display = 'none';
-                });
-                var primeiraVisivel = Array.from(botoesAba).find(b => b.style.display === 'flex');
-                if (primeiraVisivel) window.mudarAba(primeiraVisivel.getAttribute('data-aba'), primeiraVisivel);
-                else { alert("Sem permissões!"); window.fazerLogout(); }
-            }
-        };
+    if (!window.usuarioLogado) return;
+
+    if (window.usuarioLogado.tipo === 'mestre') {
+        botoesAba.forEach(b => b.style.display = 'flex');
+        if (btnZonas) btnZonas.style.display = 'inline-block';
+        if (btnRelatorio) btnRelatorio.style.display = 'inline-block';
+        window.mudarAba('produtos', document.querySelector('.tab-btn'));
+    } else {
+        if (btnZonas) btnZonas.style.display = 'none';
+        if (btnRelatorio) btnRelatorio.style.display = 'none';
+        var acc = window.usuarioLogado.acessos || {};
+        botoesAba.forEach(b => {
+            var aba = b.getAttribute('data-aba');
+            if (aba === 'produtos' || aba === 'insumos') b.style.display = acc.produtos ? 'flex' : 'none';
+            else if (aba === 'encomendas') b.style.display = acc.encomendas ? 'flex' : 'none';
+            else if (aba === 'pdv') b.style.display = acc.pdv ? 'flex' : 'none';
+            else if (aba === 'pedidos_online') b.style.display = acc.pedidos ? 'flex' : 'none';
+            else b.style.display = 'none';
+        });
+        var primeiraVisivel = Array.from(botoesAba).find(b => b.style.display === 'flex');
+        if (primeiraVisivel) window.mudarAba(primeiraVisivel.getAttribute('data-aba'), primeiraVisivel);
+        else { alert("Sem permissões!"); window.fazerLogout(); }
+    }
+};
 
 window.mudarAba = function(aba, btn) {
     var botoes = document.querySelectorAll('.tab-btn');
@@ -688,17 +726,44 @@ window.mudarAba = function(aba, btn) {
     var secoes = document.querySelectorAll('.secao-painel');
     for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
 
-    if (aba === 'produtos') { document.getElementById('secao-produtos').style.display = 'block'; window.carregarProdutosAdmin(); window.renderizarOpcoesEncomendaAdmin(); } 
-    else if (aba === 'insumos') { document.getElementById('secao-insumos').style.display = 'block'; window.carregarInsumosAdmin(); } 
-    else if (aba === 'encomendas') { document.getElementById('secao-encomendas').style.display = 'block'; window.carregarEncomendasAdmin(); window.carregarZonasBalcao(); window.carregarOpcoesSelectBalcao(); } 
-    else if (aba === 'clientes') { document.getElementById('secao-clientes').style.display = 'block'; window.carregarClientesAdmin(); } 
-    else if (aba === 'funcionarios') { document.getElementById('secao-funcionarios').style.display = 'block'; window.carregarFuncionariosAdmin(); }
-    else if (aba === 'pdv') { document.getElementById('secao-pdv').style.display = 'block'; window.carregarPDV(); }
+    if (aba === 'produtos') { 
+        document.getElementById('secao-produtos').style.display = 'block'; 
+        window.carregarProdutosAdmin(); 
+        window.renderizarOpcoesEncomendaAdmin(); 
+    } 
+    else if (aba === 'insumos') { 
+        document.getElementById('secao-insumos').style.display = 'block'; 
+        window.carregarInsumosAdmin(); 
+    } 
+    else if (aba === 'encomendas') { 
+        document.getElementById('secao-encomendas').style.display = 'block'; 
+        window.carregarEncomendasAdmin(); 
+        window.carregarZonasBalcao(); 
+        window.carregarOpcoesSelectBalcao(); 
+    } 
+    else if (aba === 'clientes') { 
+        document.getElementById('secao-clientes').style.display = 'block'; 
+        window.carregarClientesAdmin(); 
+    } 
+    else if (aba === 'funcionarios') { 
+        document.getElementById('secao-funcionarios').style.display = 'block'; 
+        window.carregarFuncionariosAdmin(); 
+    }
+    else if (aba === 'pdv') { 
+        document.getElementById('secao-pdv').style.display = 'block'; 
+        window.carregarPDV(); 
+    }
     else if (aba === 'pedidos_online') { 
         document.getElementById('secao-pedidos_online').style.display = 'block'; 
         window.renderizarPedidosDiarios(); 
     }
-    
+else if (aba === 'configuracoes') { 
+        document.getElementById('secao-configuracoes').style.display = 'block'; 
+        if (typeof window.carregarSenhasAdmin === 'function') {
+            window.carregarSenhasAdmin();
+        }
+    }
+
     if (btn) btn.classList.add('active');
 };
 
@@ -2398,6 +2463,209 @@ window.excluirFuncionarioAdmin = async function(fId) {
     }
 };
 window.excluirFuncionarioAdmin = excluirFuncionarioAdmin;
+// ==========================================
+// SISTEMA DE BACKUP (EXPORTAR E IMPORTAR)
+// ==========================================
+
+window.exportarBackupFirestore = async function() {
+    if (!window.db) return alert("Erro: Banco de dados não conectado.");
+    
+    if (!confirm("Deseja gerar um arquivo de backup completo de todas as coleções?")) return;
+
+    try {
+        const colecoes = ["produtos", "clientes", "funcionarios", "pedidos"];
+        const backupData = {
+            versaoSistema: "1.0",
+            dataBackup: new Date().toISOString(),
+            colecoes: {}
+        };
+
+        for (let i = 0; i < colecoes.length; i++) {
+            let nomeCol = colecoes[i];
+            try {
+                let snapshot = await window.getDocs(window.collection(window.db, nomeCol));
+                backupData.colecoes[nomeCol] = [];
+                snapshot.forEach(docSnap => {
+                    backupData.colecoes[nomeCol].push({
+                        id: docSnap.id,
+                        ...docSnap.data()
+                    });
+                });
+            } catch (err) {
+                console.warn(`Coleção ${nomeCol} vazia ou inacessível:`, err);
+            }
+        }
+
+        // Criar o arquivo JSON para download automático
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const downloadAnchor = document.createElement('a');
+        const dataFormatada = new Date().toISOString().slice(0, 10);
+        
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `backup_tati_${dataFormatada}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+
+        alert("Backup exportado com sucesso! Guarde seu arquivo em um lugar seguro.");
+    } catch (err) {
+        console.error("Erro ao gerar backup:", err);
+        alert("Erro ao exportar backup: " + err.message);
+    }
+};
+
+window.importarBackupFirestore = async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!confirm("⚠️ ATENÇÃO: Restaurar um backup irá inserir/atualizar os registros no banco de dados atual. Deseja continuar?")) {
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const conteudo = JSON.parse(e.target.result);
+            if (!conteudo.colecoes) {
+                return alert("Arquivo de backup inválido!");
+            }
+
+            const colecoes = Object.keys(conteudo.colecoes);
+            for (let c = 0; c < colecoes.length; c++) {
+                let nomeCol = colecoes[c];
+                let itens = conteudo.colecoes[nomeCol];
+                
+                if (Array.isArray(itens)) {
+                    for (let item of itens) {
+                        let idDoc = item.id;
+                        // Remove o id para não duplicar dentro do objeto salvo
+                        delete item.id;
+                        
+                        if (idDoc) {
+                            // Salva mantendo o mesmo ID original da nuvem
+                            await window.setDoc(window.doc(window.db, nomeCol, idDoc), item, { merge: true });
+                        } else {
+                            await window.addDoc(window.collection(window.db, nomeCol), item);
+                        }
+                    }
+                }
+            }
+
+            alert("Backup restaurado e importado com sucesso para o Firestore! 🚀");
+            location.reload(); // Recarrega a página para atualizar os dados
+        } catch (err) {
+            console.error("Erro ao processar arquivo de backup:", err);
+            alert("Erro ao ler o arquivo JSON. Certifique-se de que é um backup válido.");
+        }
+    };
+    reader.readAsText(file);
+};
+
+window.mostrarSecao = function(nomeSecao) {
+    // Oculta todas as seções que têm a classe 'secao-admin'
+    var secoes = document.querySelectorAll('.secao-admin');
+    secoes.forEach(function(sec) {
+        sec.style.display = 'none';
+    });
+    
+    // Mostra apenas a seção escolhida
+    var secaoAlvo = document.getElementById('secao-' + nomeSecao);
+    if (secaoAlvo) {
+        secaoAlvo.style.display = 'block';
+    } else {
+        console.error("Seção não encontrada: secao-" + nomeSecao);
+    }
+};
+
+// ==========================================
+// GESTÃO DE SENHAS E ACESSOS (ISOLADO E SEGURO)
+// ==========================================
+
+window.carregarSenhasAdmin = async function() {
+    const container = document.getElementById('lista-senhas-funcionarios');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="color: #666; font-size: 0.85rem;">Buscando funcionários...</p>';
+
+    try {
+        // Usa diretamente as funções do Firebase já importadas no topo do config.js
+        const snapshot = await getDocs(collection(db, "funcionarios"));
+        
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: #666; font-size: 0.85rem;">Nenhum funcionário encontrado na coleção "funcionarios".</p>';
+            return;
+        }
+        
+        let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+        snapshot.forEach(docSnap => {
+            const func = docSnap.data();
+            const id = docSnap.id;
+            html += `
+                <div style="background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <strong style="color: var(--chocolate);">${func.nome || 'Funcionário'}</strong><br>
+                        <span style="font-size: 0.80rem; color: #666;">Cargo: ${func.cargo || 'N/A'} | CPF: ${func.cpf || 'N/A'}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="nova-senha-${id}" placeholder="Nova senha" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; width: 140px;">
+                        <button onclick="atualizarSenhaFuncionario('${id}', '${func.nome}')" style="background: var(--pink); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem;">Salvar Senha</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    } catch (err) {
+        console.error("Erro ao carregar senhas:", err);
+        container.innerHTML = `<p style="color: red; font-size: 0.85rem;">Erro ao carregar: ${err.message}</p>`;
+    }
+};
+
+window.atualizarSenhaFuncionario = async function(id, nome) {
+    const input = document.getElementById(`nova-senha-${id}`);
+    if (!input || !input.value.trim()) {
+        return alert("Digite a nova senha no campo correspondente!");
+    }
+    const novaSenha = input.value.trim();
+    
+    if (!confirm(`Deseja realmente alterar a senha de acesso do funcionário(a) ${nome}?`)) return;
+
+    try {
+        await updateDoc(doc(db, "funcionarios", id), {
+            senha: novaSenha
+        });
+        alert(`Senha de ${nome} atualizada com sucesso! 🔓`);
+        input.value = '';
+        window.carregarSenhasAdmin();
+    } catch (err) {
+        console.error("Erro ao atualizar senha:", err);
+        alert("Erro ao atualizar senha: " + err.message);
+    }
+};
+
+window.atualizarSenhaMestre = async function() {
+    const input = document.getElementById('nova-senha-mestre');
+    if (!input || !input.value.trim()) {
+        return alert("Digite a nova senha mestre!");
+    }
+    const novaSenhaMestre = input.value.trim();
+
+    if (!confirm("Deseja alterar a senha mestre de acesso da Tati?")) return;
+
+    try {
+        await setDoc(doc(db, "configuracoes", "sistema"), {
+            senhaMestre: novaSenhaMestre
+        }, { merge: true });
+        
+        alert("Senha mestre atualizada com sucesso! 👑");
+        input.value = '';
+    } catch (err) {
+        console.error("Erro ao salvar senha mestre:", err);
+        alert("Erro ao salvar senha mestre: " + err.message);
+    }
+};
+
 
     </script>
     <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->

@@ -767,6 +767,62 @@ window.concluirEncomendaNaNuvem = async function(firestoreId, encomendaData) {
         return false;
     }
 };
+
+window.mudarAba = function(aba, btn) {
+    var botoes = document.querySelectorAll('.tab-btn');
+    for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
+    var secoes = document.querySelectorAll('.secao-painel');
+    for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
+
+    if (aba === 'produtos') { 
+        document.getElementById('secao-produtos').style.display = 'block'; 
+        window.carregarProdutosAdmin(); 
+        window.renderizarOpcoesEncomendaAdmin(); 
+    } 
+    else if (aba === 'insumos') { 
+        document.getElementById('secao-insumos').style.display = 'block'; 
+        window.carregarInsumosAdmin(); 
+    } 
+    else if (aba === 'encomendas') { 
+        document.getElementById('secao-encomendas').style.display = 'block'; 
+        window.carregarEncomendasAdmin(); 
+        window.carregarZonasBalcao(); 
+        window.carregarOpcoesSelectBalcao(); 
+    } 
+    else if (aba === 'clientes') { 
+        document.getElementById('secao-clientes').style.display = 'block'; 
+        window.carregarClientesAdmin(); 
+    } 
+    else if (aba === 'funcionarios') { 
+        document.getElementById('secao-funcionarios').style.display = 'block'; 
+        window.carregarFuncionariosAdmin(); 
+    }
+    else if (aba === 'pdv') { 
+        document.getElementById('secao-pdv').style.display = 'block'; 
+        window.carregarPDV(); 
+    }
+    else if (aba === 'pedidos_online') { 
+        document.getElementById('secao-pedidos_online').style.display = 'block'; 
+        window.renderizarPedidosDiarios(); 
+    }
+else if (aba === 'configuracoes') { 
+        document.getElementById('secao-configuracoes').style.display = 'block'; 
+        if (typeof window.carregarSenhasAdmin === 'function') {
+            window.carregarSenhasAdmin();
+        } else {
+            console.error("A função carregarSenhasAdmin não foi encontrada!");
+        }
+    }
+
+    if (btn) btn.classList.add('active');
+};
+
+        window.toggleCampoPromo = function() {
+            var isChecked = document.getElementById('promocao').checked;
+            document.getElementById('grupo-preco-promo').style.display = isChecked ? 'block' : 'none';
+        };
+
+
 // Libera as ferramentas do Firestore globalmente para o admin.html
 window.db = db;
 window.getDocs = getDocs;
