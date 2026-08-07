@@ -147,6 +147,31 @@
                 font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #000;
             }
         }
+
+@media print {
+    /* Esconde tudo na página */
+    body * {
+        visibility: hidden;
+    }
+    /* Mostra apenas o modal de relatório e seu conteúdo */
+    #modal-relatorio-vendas, #modal-relatorio-vendas * {
+        visibility: visible;
+    }
+    /* Posiciona o modal no topo da página impressa */
+    #modal-relatorio-vendas {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+        background: white !important;
+    }
+    /* Esconde os botões de fechar, abas e limpar para o PDF ficar limpo */
+    #modal-relatorio-vendas button {
+        display: none !important;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -178,7 +203,6 @@
             </form> 
             <!-- FORM FECHA AQUI! ESSA ERA A PEÇA QUE FALTAVA -->
 
-            <p style="font-size: 0.75rem; color: #999; margin-top: 20px;">Senha mestre padrão: <strong>tati123</strong></p>
         </div>
     </div>
     <header>
@@ -190,6 +214,7 @@
             <button onclick="abrirCalendarioEncomendas()" style="background: #7b1fa2; color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">📅 Calendário de Encomendas</button>
             <button id="btn-zonas" onclick="abrirZonasFrete()" style="background: #ff9800; color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">🛵 Zonas de Frete</button>
             <button id="btn-relatorio" onclick="abrirRelatorioVendas()" style="background: var(--pink); color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">📊 Relatório de Vendas</button>
+            <button onclick="abrirModalItensMaisVendidos()" style="background: #7b1fa2; color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">🏆 Itens Mais Vendidos</button>
             <button onclick="fazerLogout()" style="background: #6c757d; color: white; padding: 8px 12px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.8rem;">Sair 🚪</button>
             <a href="index.html" target="_blank" style="background: var(--light-pink); color: var(--chocolate); padding: 8px 12px; border-radius: 20px; font-weight: bold; text-decoration: none; font-size: 0.85rem;">Ver Cardápio</a>
         </div>
@@ -487,7 +512,8 @@
                     </div>
                 </div>
             </div>
-        </div>    
+        </div>   
+     
     </main>
 
     <div id="area-impressao"></div>
@@ -535,12 +561,15 @@
                 <button class="rel-tab-btn" onclick="mudarAbaRelatorio('encomendas', this)">Vendas Encomendas</button>
             </div>
             <div id="conteudo-relatorio" style="flex: 1; overflow-y: auto; max-height: 55vh; padding-right: 5px;"></div>
-            <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <button onclick="limparHistoricoRelatorio()" style="background: #ffebee; color: #c62828; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">🗑️ Limpar Histórico Atual</button>
-                <div style="font-weight: bold; font-size: 1.05rem;">
-                    Total Filtrado: <span style="color: var(--pink);">R$ <span id="relatorio-total-geral">0.00</span></span>
-                </div>
-            </div>
+<div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <button onclick="limparHistoricoRelatorio()" style="background: #ffebee; color: #c62828; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">🗑️ Limpar Histórico</button>
+        
+        <button onclick="window.print()" style="background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">🖨️ Imprimir / PDF</button>
+
+        <div style="font-weight: bold; font-size: 1rem;">
+            Total: <span style="color: var(--pink);">R$ <span id="relatorio-total-geral">0.00</span></span>
+        </div>
+    </div>
         </div>
     </div>
 
@@ -637,6 +666,22 @@
         </div>
     </div>
 
+<!-- MODAL DE ITENS MAIS VENDIDOS -->
+<div id="modal-itens-vendidos" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2300; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+    <div style="background: white; width: 100%; max-width: 600px; max-height: 90vh; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #7b1fa2;">🏆 Ranking de Itens Mais Vendidos</h3>
+            <button onclick="fecharModalItensMaisVendidos()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div id="conteudo-itens-mais-vendidos" style="flex: 1; overflow-y: auto; max-height: 60vh; padding-right: 5px;">
+            <p style="text-align: center; color: #777;">Carregando dados...</p>
+        </div>
+        <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 15px; text-align: right;">
+            <button onclick="fecharModalItensMaisVendidos()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <script type="module" src="config.js?v=2"></script>
 
     <script>
@@ -705,7 +750,8 @@ window.fazerLogin = async function(event) {
             usuMestre = mestreSnap.data().usuario;
             senhaMestre = mestreSnap.data().senha;
         }
-    } catch(e) {
+} catch(e) {
+        console.error("Erro real que está impedindo o Firebase:", e);
         console.log("Ainda não há senha mestre no banco, usando o padrão.");
     }
 
@@ -717,7 +763,7 @@ window.fazerLogin = async function(event) {
         if (typeof window.aplicarPermissoes === 'function') window.aplicarPermissoes();
         return;
     }
-    
+
     // 2. Testa o acesso dos Funcionários direto da Nuvem
     try {
         var listaFuncionarios = [];
@@ -1495,6 +1541,7 @@ window.removerEncomendaAdmin = async function(firestoreId) {
             }
             totalGeralEl.innerText = somaTotal.toFixed(2);
         };
+        
                     // VERIFICAR LEMBRETES DE ENCOMENDA (NUVEM)
         window.verificarLembretesEncomendas = async function() {
             var banner = document.getElementById('banner-alerta-encomenda');
@@ -2729,6 +2776,81 @@ window.atualizarSenhaMestre = async function() {
     }
 };
 
+// Funções do Modal de Itens Mais Vendidos
+window.abrirModalItensMaisVendidos = async function() {
+    document.getElementById('modal-itens-vendidos').style.display = 'flex';
+    await window.calcularItensMaisVendidos();
+};
+
+window.fecharModalItensMaisVendidos = function() {
+    document.getElementById('modal-itens-vendidos').style.display = 'none';
+};
+
+window.calcularItensMaisVendidos = async function() {
+    var container = document.getElementById('conteudo-itens-mais-vendidos');
+    container.innerHTML = '<p style="text-align: center; color: #777;">Analisando vendas de todas as categorias...</p>';
+
+    try {
+        var contagemProdutos = {};
+
+        // 1. Busca vendas de mesas
+        const snapMesas = await getDocs(collection(db, "vendas_mesas"));
+        snapMesas.forEach(d => {
+            var v = d.data();
+            if (v.itens && Array.isArray(v.itens)) {
+                v.itens.forEach(i => {
+                    var nome = i.name || i.nome || 'Produto';
+                    var qtd = Number(i.quantidade || 1);
+                    contagemProdutos[nome] = (contagemProdutos[nome] || 0) + qtd;
+                });
+            }
+        });
+
+        // 2. Busca vendas do cardápio online (concluídos)
+        var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
+        vendasCardapio.filter(v => v.status === 'concluido').forEach(vc => {
+            if (vc.itens && Array.isArray(vc.itens)) {
+                vc.itens.forEach(i => {
+                    var nome = i.name || i.nome || 'Produto';
+                    var qtd = Number(i.quantidade || 1);
+                    contagemProdutos[nome] = (contagemProdutos[nome] || 0) + qtd;
+                });
+            }
+        });
+
+        // 3. Converte para array e ordena do maior para o menor
+        var ranking = Object.keys(contagemProdutos).map(nome => {
+            return { nome: nome, quantidade: contagemProdutos[nome] };
+        }).sort((a, b) => b.quantidade - a.quantidade);
+
+        if (ranking.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 20px;">Nenhuma venda registrada para compilar o ranking ainda.</p>';
+            return;
+        }
+
+        // 4. Renderiza na tela
+        container.innerHTML = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+        ranking.forEach((item, index) => {
+            var posicaoEmoji = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : '🔹'));
+            container.innerHTML += `
+                <div style="background: #fafafa; border: 1px solid #eee; padding: 12px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-size: 1.1rem; margin-right: 8px;">${posicaoEmoji}</span>
+                        <strong style="color: var(--chocolate); font-size: 1rem;">${item.nome}</strong>
+                    </div>
+                    <div style="background: var(--light-pink); color: var(--pink); padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.9rem;">
+                        ${item.quantidade} vendidos
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML += '</div>';
+
+    } catch (err) {
+        console.error("Erro ao calcular itens mais vendidos:", err);
+        container.innerHTML = '<p style="text-align: red; text-align: center;">Erro ao carregar dados do ranking.</p>';
+    }
+};
 
     </script>
     <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->

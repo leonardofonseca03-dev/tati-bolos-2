@@ -1,11 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // TORNA AS FUNÇÕES DO FIRESTORE GLOBAIS PARA O ADMIN
 window.updateDoc = updateDoc;
 window.deleteDoc = deleteDoc;
 window.doc = doc;
 window.setDoc = setDoc;
+window.getDoc = getDoc;
 window.addDoc = addDoc;
 window.collection = collection;
 
@@ -821,7 +822,7 @@ else if (aba === 'configuracoes') {
             var isChecked = document.getElementById('promocao').checked;
             document.getElementById('grupo-preco-promo').style.display = isChecked ? 'block' : 'none';
         };
-        
+
         window.atualizarAcessoMestre = async function() {
     var novoUsu = document.getElementById('novo-usuario-mestre').value.trim().toLowerCase();
     var novaSenha = document.getElementById('nova-senha-mestre').value.trim();
@@ -845,7 +846,6 @@ else if (aba === 'configuracoes') {
         alert("Erro ao atualizar acesso. Verifique sua conexão.");
     }
 };
-
 
 // Libera as ferramentas do Firestore globalmente para o admin.html
 window.db = db;
