@@ -821,6 +821,30 @@ else if (aba === 'configuracoes') {
             var isChecked = document.getElementById('promocao').checked;
             document.getElementById('grupo-preco-promo').style.display = isChecked ? 'block' : 'none';
         };
+        
+        window.atualizarAcessoMestre = async function() {
+    var novoUsu = document.getElementById('novo-usuario-mestre').value.trim().toLowerCase();
+    var novaSenha = document.getElementById('nova-senha-mestre').value.trim();
+
+    if(!novoUsu || !novaSenha) {
+        return alert("Preencha o novo usuário e a nova senha!");
+    }
+
+    try {
+        // Salva os dados no Firebase na coleção "configuracoes", documento "mestre"
+        await window.setDoc(window.doc(window.db, "configuracoes", "mestre"), {
+            usuario: novoUsu,
+            senha: novaSenha
+        });
+        
+        alert("Acesso Mestre atualizado com sucesso! Use os novos dados no próximo login.");
+        document.getElementById('novo-usuario-mestre').value = '';
+        document.getElementById('nova-senha-mestre').value = '';
+    } catch(e) {
+        console.error("Erro ao atualizar acesso mestre:", e);
+        alert("Erro ao atualizar acesso. Verifique sua conexão.");
+    }
+};
 
 
 // Libera as ferramentas do Firestore globalmente para o admin.html

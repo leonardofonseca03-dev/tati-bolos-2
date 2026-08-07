@@ -157,23 +157,30 @@
     </div>
 
     <!-- TELA DE LOGIN DO PAINEL -->
-    <div id="modal-login" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+<div id="modal-login" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
         <div style="background: white; width: 100%; max-width: 400px; border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
             <h2 style="color: var(--pink); margin-top: 0;">🍰 Tati Amor Doce</h2>
             <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Digite sua senha de acesso ao painel</p>
-            <form onsubmit="fazerLogin(event)">
-<div class="form-group" style="text-align: left; margin-bottom: 10px;">
+            
+            <!-- FORM ABRE AQUI -->
+            <form onsubmit="fazerLogin(event)"> 
+                <div class="form-group" style="text-align: left; margin-bottom: 10px;">
                     <label>Usuário / CPF:</label>
                     <input type="text" id="usuario-login" required placeholder="Digite seu usuário ou CPF" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
+                
                 <div class="form-group" style="text-align: left;">
                     <label>Senha:</label>
                     <input type="password" id="senha-login" required placeholder="Digite sua senha" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
-                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 15px;">Entrar no Painel 🔒</button>            <p style="font-size: 0.75rem; color: #999; margin-top: 20px;">Senha mestre padrão: <strong>tati123</strong></p>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 15px;">Entrar no Painel 🔒</button> 
+            </form> 
+            <!-- FORM FECHA AQUI! ESSA ERA A PEÇA QUE FALTAVA -->
+
+            <p style="font-size: 0.75rem; color: #999; margin-top: 20px;">Senha mestre padrão: <strong>tati123</strong></p>
         </div>
     </div>
-
     <header>
         <div>
             <h2 style="font-size: 1.2rem; margin:0; color: var(--pink);">Painel Admin - Tati Amor Doce</h2>
@@ -384,10 +391,17 @@
                     </div>
                     <div class="form-group"><label>Endereço:</label><input type="text" id="func-endereco" placeholder="Rua, Número, Bairro"></div>
                     <div style="display: flex; gap: 15px;">
-                        <div class="form-group" style="flex: 1;"><label style="color: var(--pink);">🔑 Senha de Acesso:</label><input type="password" id="func-senha" required placeholder="Senha numérica ou texto"></div>
                     </div>
-                    
-                    <div style="background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 15px;">
+<div style="display: flex; gap: 15px; margin-bottom: 15px;">
+    <div class="form-group" style="flex: 1;">
+        <label>Usuário de Login:</label>
+        <input type="text" id="cad-usuario" placeholder="Ex: roberto123" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+    <div class="form-group" style="flex: 1;">
+        <label>Senha de Acesso:</label>
+        <input type="text" id="cad-senha" placeholder="Senha do funcionário" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+</div>                    <div style="background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 15px;">
                         <label style="font-size: 0.9rem; font-weight: bold; margin-bottom: 8px; display: block;">Permissões de Acesso:</label>
                         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                             <label style="font-weight: normal; font-size: 0.85rem;"><input type="checkbox" id="acc-produtos" checked> Produtos & Encomendas</label>
@@ -439,8 +453,25 @@
             <div class="card">
                 <h3 style="margin-top: 0; color: var(--pink);">⚙️ Configurações e Segurança do Sistema</h3>
                 <p style="font-size: 0.85rem; color: #666; margin-top: -10px;">Gerencie o backup dos dados e as preferências do painel.</p>
-
-                <!-- Card de Backup -->
+<!-- PAINEL DE ATUALIZAR ACESSO MESTRE -->
+<div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <h3 style="color: var(--pink); margin-top: 0;">🔒 Atualizar Acesso Mestre</h3>
+    <p style="font-size: 0.9rem; color: #666;">Altere o usuário e senha principais do sistema.</p>
+    
+    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group" style="flex: 1;">
+            <label>Novo Usuário Mestre:</label>
+            <input type="text" id="novo-usuario-mestre" placeholder="Ex: tati.oficial" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Nova Senha Mestre:</label>
+            <!-- Tipo text para ela ver o que está digitando -->
+            <input type="text" id="nova-senha-mestre" placeholder="Digite a nova senha" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+    </div>
+    
+    <button onclick="atualizarAcessoMestre()" class="btn-primary" style="padding: 10px 20px;">Atualizar Acesso Mestre 💾</button>
+</div>                <!-- Card de Backup -->
                 <div style="background: white; border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <h3 style="color: var(--pink); margin-top: 0; margin-bottom: 10px;">💾 Backup do Banco de Dados (Firestore)</h3>
                     <p style="font-size: 0.9rem; color: #555; margin-bottom: 15px;">
@@ -654,34 +685,73 @@
 // CONTROLE DE LOGIN, LOGOUT E PERMISSÕES
 // ==========================================
 
-window.fazerLogin = function(event) {
+window.fazerLogin = async function(event) {
     event.preventDefault();
+    
+    var btn = event.target.querySelector('button');
+    var textoOriginal = btn.innerText;
+    btn.innerText = "Aguarde...";
+    
     var usuarioInput = document.getElementById('usuario-login').value.trim().toLowerCase();
     var senhaInput = document.getElementById('senha-login').value.trim();
     
-    // Credenciais Mestre (Tati)
-    if ((usuarioInput === 'tati' || usuarioInput === 'admin') && senhaInput === 'tati123') {
+    // 1. BUSCA O USUÁRIO E SENHA MESTRE LÁ DO FIREBASE
+    let usuMestre = 'tati';      // Rede de segurança (padrão)
+    let senhaMestre = 'tati123'; // Rede de segurança (padrão)
+
+    try {
+        const mestreSnap = await window.getDoc(window.doc(window.db, "configuracoes", "mestre"));
+        if (mestreSnap.exists()) {
+            usuMestre = mestreSnap.data().usuario;
+            senhaMestre = mestreSnap.data().senha;
+        }
+    } catch(e) {
+        console.log("Ainda não há senha mestre no banco, usando o padrão.");
+    }
+
+    // 2. TESTA O ACESSO MESTRE
+    if (usuarioInput === usuMestre && senhaInput === senhaMestre) {
         window.usuarioLogado = { tipo: 'mestre', nome: 'Tati (Mestre)' };
         document.getElementById('modal-login').style.display = 'none';
         document.getElementById('usuario-logado-txt').innerText = "Logado como: Mestre (Tati)";
-        window.aplicarPermissoes();
+        if (typeof window.aplicarPermissoes === 'function') window.aplicarPermissoes();
         return;
     }
+    
+    // 2. Testa o acesso dos Funcionários direto da Nuvem
+    try {
+        var listaFuncionarios = [];
+        // Usa a sua função que já está lá no config.js
+        if (typeof window.obterFuncionariosDaNuvem === 'function') {
+            listaFuncionarios = await window.obterFuncionariosDaNuvem();
+        }
 
-    // Procura na lista de funcionários (validando Usuário/CPF E Senha)
-    var func = window.funcionariosTati ? window.funcionariosTati.find(f => 
-        (f.usuario && f.usuario.toLowerCase() === usuarioInput || f.cpf === usuarioInput) && f.senha === senhaInput
-    ) : null;
+        var func = listaFuncionarios.find(f => {
+            var usuDb = f.usuario ? f.usuario.toLowerCase() : "";
+            // Limpa os pontos e traços do CPF para garantir que a comparação não falhe
+            var cpfDb = f.cpf ? f.cpf.replace(/\D/g, '') : "";
+            var inputLimpo = usuarioInput.replace(/\D/g, '');
 
-    if (func) {
-        window.usuarioLogado = { tipo: 'funcionario', nome: func.nome, acessos: func.acessos };
-        document.getElementById('modal-login').style.display = 'none';
-        document.getElementById('usuario-logado-txt').innerText = "Logado como: " + func.nome;
-        window.aplicarPermissoes();
-        return;
+            // Bate se o que foi digitado é o usuário OU o CPF, e confere a senha
+            return (usuDb === usuarioInput || (cpfDb !== "" && cpfDb === inputLimpo)) && f.senha === senhaInput;
+        });
+
+        if (func) {
+            window.usuarioLogado = { tipo: 'funcionario', nome: func.nome, acessos: func.acessos || {} };
+            document.getElementById('modal-login').style.display = 'none';
+            document.getElementById('usuario-logado-txt').innerText = "Logado como: " + func.nome;
+            if (typeof window.aplicarPermissoes === 'function') window.aplicarPermissoes();
+            return;
+        }
+
+        alert("Usuário, CPF ou senha incorretos!");
+        btn.innerText = textoOriginal;
+
+    } catch (erro) {
+        console.error("Erro no login dos funcionários:", erro);
+        alert("Erro ao validar login. Tente novamente.");
+        btn.innerText = textoOriginal;
     }
-
-    alert("Usuário ou senha incorretos!");
 };
 
 window.fazerLogout = function() {
@@ -2410,6 +2480,10 @@ window.salvarFuncionario = async function(event) {
     var cpf = cpfInput.value.replace(/\D/g, '');
     if(cpf.length !== 11) return alert("CPF inválido (11 dígitos).");
     
+    // Captura os campos novos de usuário e senha (aceitando o ID novo ou o antigo caso ainda exista)
+    var inputUsuario = document.getElementById('cad-usuario');
+    var inputSenha = document.getElementById('cad-senha') || document.getElementById('func-senha');
+    
     var novoFunc = {
         nome: document.getElementById('func-nome').value,
         cpf: cpf,
@@ -2417,7 +2491,8 @@ window.salvarFuncionario = async function(event) {
         funcao: document.getElementById('func-cargo').value,
         salario: parseFloat(document.getElementById('func-salario').value) || 0,
         endereco: document.getElementById('func-endereco').value,
-        senha: document.getElementById('func-senha').value.trim(),
+        usuario: inputUsuario ? inputUsuario.value.trim().toLowerCase() : '',
+        senha: inputSenha ? inputSenha.value.trim() : '',
         acessos: {
             produtos: document.getElementById('acc-produtos').checked,
             encomendas: document.getElementById('acc-encomendas').checked,
@@ -2440,7 +2515,7 @@ window.salvarFuncionario = async function(event) {
         }
 
         var formEl = document.getElementById('form-funcionario');
-        if (formEl) formEl.reset();
+        if (formEl) formEl.reset(); // Isso já limpa todos os campos, incluindo o usuário e a senha!
         if (typeof window.carregarFuncionariosAdmin === 'function') {
             window.carregarFuncionariosAdmin();
         }
@@ -2451,18 +2526,6 @@ window.salvarFuncionario = async function(event) {
 };
 window.salvarFuncionario = salvarFuncionario;
 
-window.excluirFuncionarioAdmin = async function(fId) {
-    if(!confirm("Deseja realmente excluir este funcionário?")) return;
-    try {
-        await window.deleteDoc(window.doc(window.db, "funcionarios", fId));
-        alert("Funcionário excluído com sucesso!");
-        window.carregarFuncionariosAdmin();
-    } catch(err) {
-        console.error("Erro ao excluir:", err);
-        alert("Erro ao excluir funcionário.");
-    }
-};
-window.excluirFuncionarioAdmin = excluirFuncionarioAdmin;
 // ==========================================
 // SISTEMA DE BACKUP (EXPORTAR E IMPORTAR)
 // ==========================================
