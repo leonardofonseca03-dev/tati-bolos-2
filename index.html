@@ -193,7 +193,6 @@
             </div>
 
             <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #eee;">
-                <p style="margin: 0 0 8px 0; font-size: 0.85rem;">🕒 <strong>Horário:</strong> Terça a Dom • 13:00 às 20:00</p>
                 <label><strong>Tipo de Atendimento:</strong></label>
                 <select id="tipo-entrega" onchange="verificarEntrega()" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
                     <option value="Retirada na Loja" data-taxa="0">Retirada na Loja (R. São Geraldo) - Grátis</option>
@@ -227,6 +226,40 @@
             </button>
         </div>
     </div>
+
+<!-- Botão Flutuante de Horários -->
+<button onclick="toggleHorarioModal()" style="position: fixed; bottom: 20px; left: 20px; background: #ffffff; color: #333333; border: 1px solid #ddd; padding: 10px 16px; border-radius: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; font-weight: bold; font-size: 0.9rem; z-index: 999; display: flex; align-items: center; gap: 6px; transition: transform 0.2s;">
+    🕒 Horários
+</button>
+
+<!-- Modal de Horários (Oculto por padrão) -->
+<div id="modal-horario" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 22px; border-radius: 12px; width: 90%; max-width: 320px; box-shadow: 0 8px 20px rgba(0,0,0,0.25); position: relative; font-family: sans-serif;">
+        <h3 style="margin-top: 0; margin-bottom: 14px; font-size: 1.1rem; color: #222; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; text-align: center;">Horário de Funcionamento</h3>
+        
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: #444;">
+            <li style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee;"><span>Segunda-feira:</span> <strong>08:30–20:00</strong></li>
+            <li style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee;"><span>Terça-feira:</span> <strong>08:30–20:00</strong></li>
+            <li style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee;"><span>Quarta-feira:</span> <strong>08:30–20:00</strong></li>
+            <li style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee;"><span>Quinta-feira:</span> <strong>08:30–20:00</strong></li>
+            <li style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee;"><span>Sexta-feira:</span> <strong>08:30–22:00</strong></li>
+            <li style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee;"><span>Sábado:</span> <strong>09:00–22:30</strong></li>
+            <li style="display: flex; justify-content: space-between; padding: 6px 0;"><span>Domingo:</span> <strong>11:00–22:00</strong></li>
+        </ul>
+
+        <button onclick="toggleHorarioModal()" style="width: 100%; margin-top: 18px; background: #222; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">Fechar</button>
+    </div>
+</div>
+
+<script>
+function toggleHorarioModal() {
+    const modal = document.getElementById('modal-horario');
+    if (modal) {
+        modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+    }
+}
+window.toggleHorarioModal = toggleHorarioModal;
+</script>
 
 <script type="module" src="config.js"></script>    
 <script>
