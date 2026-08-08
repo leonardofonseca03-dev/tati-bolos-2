@@ -213,11 +213,14 @@
                     <option value="Dinheiro">Dinheiro</option>
                 </select>
                 
-                <div id="aviso-pix" style="background: #e8f5e9; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.85rem; color: #2e7d32; border: 1px solid #c8e6c9;">
-                    🔑 <strong>Chave Pix da Tati:</strong> <span style="font-family: monospace; font-weight: bold;">[INSERIR_CHAVE_PIX_AQUI]</span><br>
-                    <em>Envie o comprovante junto com o pedido no WhatsApp!</em>
-                </div>
-            </div>
+<div id="aviso-pix" style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-top: 8px; font-size: 0.9rem; color: #333;">
+    <p style="margin: 0 0 6px 0;"><strong>Chave Pix:</strong> <span id="texto-chave-pix" style="font-family: monospace; background: #fff; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc;">7b4b3fba-d6c3-4d36-b7f4-cea0d1ac3356</span></p>
+    <p style="margin: 0 0 4px 0;"><strong>Favorecido:</strong> Tatiana Lourenço dos Santos</p>
+    <p style="margin: 0 0 8px 0;"><strong>Banco:</strong> Cloudwalk (InfinityPay)</p>
+    <button type="button" onclick="copiarChavePix()" style="background: #25d366; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">
+        📋 Copiar Chave Pix
+    </button>
+</div>
 
             <button onclick="finalizarPedidoWhatsApp()" style="background-color: #25d366; color: white; border: none; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem;">
                 Enviar Pedido via WhatsApp 📱
@@ -426,11 +429,11 @@ async function carregarZonasCarrinho() {
             atualizarCarrinhoUI();
         }
 
-        function verificarPix() {
-            const pagamento = document.getElementById('forma-pagamento').value;
-            const avisoPix = document.getElementById('aviso-pix');
-            if (avisoPix) avisoPix.style.display = (pagamento === 'Pix') ? 'block' : 'none';
-        }
+function verificarPix() {
+    const pagamento = document.getElementById('forma-pagamento').value;
+    const avisoPix = document.getElementById('aviso-pix');
+    if (avisoPix) avisoPix.style.display = (pagamento === 'Pix') ? 'block' : 'none';
+}
 
         function atualizarCarrinhoUI() {
             const listaCarrinho = document.getElementById('lista-carrinho');
@@ -597,6 +600,18 @@ window.onload = async function() {
             await carregarZonasCarrinho();
             verificarPix();
         };
+
+function copiarChavePix() {
+    const chave = "7b4b3fba-d6c3-4d36-b7f4-cea0d1ac3356";
+    navigator.clipboard.writeText(chave).then(() => {
+        alert("Chave Pix copiada com sucesso! Cole no aplicativo do seu banco.");
+    }).catch(err => {
+        console.error("Erro ao copiar chave Pix: ", err);
+        alert("Não foi possível copiar automaticamente. Selecione a chave e copie manualmente.");
+    });
+}
+window.copiarChavePix = copiarChavePix;
+
 
         </script>
         <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->
