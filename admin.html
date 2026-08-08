@@ -949,17 +949,23 @@ async function carregarProdutosAdmin() {
             var seloPromo = isPromo ? '<span style="background: var(--pink); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 6px; font-weight: bold;">🔥 PROMO</span>' : '';
             var expiraInfo = produto.promo_expira ? `<br><small style="color:#888;">Expira em: ${new Date(produto.promo_expira).toLocaleString()}</small>` : '';
 
+// Define o texto, cor e valor booleano dependendo se está pausado ou ativo
+            let estaPausado = produto.disponivel === false;
+            let textoBotaoPausar = estaPausado ? "🟢 Ativar" : "⏸️ Pausar";
+            let corBotaoPausar = estaPausado ? "#28a745" : "#ffc107"; // Verde se estiver pausado, Amarelo/Laranja se estiver ativo
+
             container.innerHTML += `
-                <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px;">
+                <div class="item-list" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 6px; ${estaPausado ? 'opacity: 0.6;' : ''}">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${produto.imagem || ''}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'">
                         <div>
-                            <strong>${produto.name || produto.nome || 'Produto'}</strong> ${seloPromo}<br>
+                            <strong>${produto.name || produto.nome || 'Produto'}</strong> ${seloPromo} ${estaPausado ? '<span style="color: red; font-size: 0.75rem;">(PAUSADO)</span>' : ''}<br>
                             <small style="color: #666;">Categoria: ${produto.categoria || 'Geral'} | <strong>${precoDisplay}</strong></small>
                             ${expiraInfo}
                         </div>
                     </div>
                     <div style="display: flex; gap: 5px;">
+                        <button onclick="alternarStatusProduto('${prodId}', ${estaPausado})" style="background: ${corBotaoPausar}; color: ${estaPausado ? 'white' : '#333'}; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">${textoBotaoPausar}</button>
                         <button onclick="prepararEdicaoProduto('${prodId}')" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✏️ Editar</button>
                         <button onclick="deletarProdutoAdmin('${prodId}')" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Excluir</button>
                     </div>
@@ -2853,6 +2859,25 @@ window.calcularItensMaisVendidos = async function() {
         container.innerHTML = '<p style="text-align: red; text-align: center;">Erro ao carregar dados do ranking.</p>';
     }
 };
+
+window.alternarStatusProduto = async function(prodId, statusAtual) {
+    try {
+        let novoStatusDisponivel = statusAtual ? true : false;
+        
+        await updateDoc(doc(db, "produtos", prodId), {
+            disponivel: novoStatusDisponivel
+        });
+
+        if (typeof window.carregarProdutosAdmin === 'function') {
+            window.carregarProdutosAdmin();
+        }
+    } catch (error) {
+        console.error("Erro ao alterar status do produto:", error);
+        alert("Erro ao alterar status do produto.");
+    }
+};
+window.alternarStatusProduto = alternarStatusProduto;
+
 
     </script>
     <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->

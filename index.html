@@ -247,6 +247,7 @@ async function carregarProdutos(filtro = 'todos') {
             try {
                 // Puxa os produtos direto do Firestore do Firebase!
                 listaProdutos = await window.obterProdutosDaNuvem();
+                listaProdutos = listaProdutos.filter(produto => produto.disponivel !== false);
             } catch (e) {
                 console.error("Erro ao carregar produtos da nuvem:", e);
                 listaProdutos = [];
