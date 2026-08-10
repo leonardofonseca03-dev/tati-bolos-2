@@ -57,7 +57,7 @@
             color: white;
         }
         .badge {
-            background: red;
+                background: red;
             color: white;
             border-radius: 50%;
             padding: 2px 6px;
@@ -209,18 +209,43 @@
     </div>
     <header>
         <div>
-            <h2 style="font-size: 1.2rem; margin:0; color: var(--pink);">Painel Admin - Tati Amor Doce</h2>
-            <span id="usuario-logado-txt" style="font-size: 0.75rem; color: #666;">Logado como: Mestre (Tati)</span>
+<!-- CABEÇALHO ÚNICO E LIMPO -->
+<header style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 1px solid #eee; margin-bottom: 20px; position: relative;">
+    
+    <!-- Lado Esquerdo: Menu + Título Único -->
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <!-- Botão do Menu -->
+<!-- Botão do Menu -->
+<div onclick="toggleMenu()" style="cursor: pointer; font-size: 1rem; color: var(--pink); background: white; border: 2px solid var(--pink); padding: 8px 14px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 6px; user-select: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative;">
+    ☰ Menu 
+    <span id="notificacao-menu" style="display: none; background: #ff4d4d; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: bold;">1</span>
+</div>        
+        <div>
+            <h2 style="font-size: 1.2rem; margin:0; color: var(--pink);">🍰 Painel Admin - Tati Amor Doce</h2>
+            <span id="usuario-logado-txt" style="font-size: 0.75rem; color: #666;"></span>
         </div>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <button onclick="abrirCalendarioEncomendas()" style="background: #7b1fa2; color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">📅 Calendário de Encomendas</button>
-            <button id="btn-zonas" onclick="abrirZonasFrete()" style="background: #ff9800; color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">🛵 Zonas de Frete</button>
-            <button id="btn-relatorio" onclick="abrirRelatorioVendas()" style="background: var(--pink); color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">📊 Relatório de Vendas</button>
-            <button onclick="abrirModalItensMaisVendidos()" style="background: #7b1fa2; color: white; padding: 8px 14px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.85rem;">🏆 Itens Mais Vendidos</button>
-            <button onclick="fazerLogout()" style="background: #6c757d; color: white; padding: 8px 12px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; font-size: 0.8rem;">Sair 🚪</button>
-            <a href="index.html" target="_blank" style="background: var(--light-pink); color: var(--chocolate); padding: 8px 12px; border-radius: 20px; font-weight: bold; text-decoration: none; font-size: 0.85rem;">Ver Cardápio</a>
+    </div>
+
+    <!-- Lado Direito: Atalho rápido para o Cardápio -->
+    <div>
+        <a href="index.html" target="_blank" style="background: var(--pink); color: white; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: inline-flex; align-items: center; gap: 6px;">
+            Ver Cardápio 🛒
+        </a>
+    </div>
+
+    <!-- Caixa do Menu Dropdown (Flutuante) -->
+    <div id="menu-dropdown" style="display: none; position: absolute; left: 0; top: 65px; background: white; box-shadow: 0px 8px 20px rgba(0,0,0,0.15); border-radius: 10px; width: 260px; z-index: 9999; padding: 12px; border: 1px solid #eee;">
+        <div style="font-size: 0.75rem; color: #999; text-transform: uppercase; font-weight: bold; margin-bottom: 8px; padding-left: 5px;">Atalhos do Sistema</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <button onclick="abrirCalendarioEncomendas(); toggleMenu();" style="background: #f8f9fa; color: #333; border: none; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">📅 Calendário de Encomendas</button>
+            <button id="btn-zonas" onclick="abrirZonasFrete(); toggleMenu();" style="background: #f8f9fa; color: #333; border: none; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">🛵 Zonas de Frete</button>
+            <button id="btn-relatorio" onclick="abrirRelatorioVendas(); toggleMenu();" style="background: #f8f9fa; color: #333; border: none; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">📊 Relatório de Vendas</button>
+            <button onclick="abrirModalItensMaisVendidos(); toggleMenu();" style="background: #f8f9fa; color: #333; border: none; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">🏆 Itens Mais Vendidos</button>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 4px 0;">
+            <button onclick="fazerLogout()" style="background: #ffebee; color: #c62828; border: none; padding: 10px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: bold;">Sair 🚪</button>
         </div>
-    </header>
+    </div>
+</header>
 
     <main>
 <div class="nav-tabs" id="menu-abas-admin">
@@ -729,58 +754,52 @@
         }
 
 // ==========================================
-// CONTROLE DE LOGIN, LOGOUT E PERMISSÕES
+// CONTROLE DE LOGIN, LOGOUT E PERMISSÕES (COM FIREBASE AUTH)
 // ==========================================
 
 window.fazerLogin = async function(event) {
     event.preventDefault();
     
-    var btn = event.target.querySelector('button');
+    var btn = event.target.querySelector('button') || event.target;
     var textoOriginal = btn.innerText;
     btn.innerText = "Aguarde...";
     
     var usuarioInput = document.getElementById('usuario-login').value.trim().toLowerCase();
     var senhaInput = document.getElementById('senha-login').value.trim();
-    
-    // 1. BUSCA O USUÁRIO E SENHA MESTRE LÁ DO FIREBASE
-    let usuMestre = 'tati';      // Rede de segurança (padrão)
-    let senhaMestre = 'tati123'; // Rede de segurança (padrão)
 
     try {
-        const mestreSnap = await window.getDoc(window.doc(window.db, "configuracoes", "mestre"));
-        if (mestreSnap.exists()) {
-            usuMestre = mestreSnap.data().usuario;
-            senhaMestre = mestreSnap.data().senha;
+        // 1. TENTA O LOGIN BLINDADO (FIREBASE AUTH) SE FOR UM E-MAIL
+        if (usuarioInput.includes('@')) {
+            try {
+                // Chama o Firebase Auth oficial
+                await window.signInWithEmailAndPassword(window.auth, usuarioInput, senhaInput);
+                
+                // Sucesso! É a Tati.
+                window.usuarioLogado = { tipo: 'mestre', nome: 'Tati (Mestre)' };
+                document.getElementById('modal-login').style.display = 'none';
+                document.getElementById('usuario-logado-txt').innerText = "Logado como: Mestre (Tati)";
+                if (typeof window.aplicarPermissoes === 'function') window.aplicarPermissoes();
+                return; // Para a execução aqui, deu tudo certo
+                
+            } catch (authErro) {
+                console.error("Erro no Firebase Auth:", authErro);
+                alert("E-mail ou senha do administrador incorretos!");
+                btn.innerText = textoOriginal;
+                return; // Se tentou email e errou, não precisa testar funcionário
+            }
         }
-} catch(e) {
-        console.error("Erro real que está impedindo o Firebase:", e);
-        console.log("Ainda não há senha mestre no banco, usando o padrão.");
-    }
 
-    // 2. TESTA O ACESSO MESTRE
-    if (usuarioInput === usuMestre && senhaInput === senhaMestre) {
-        window.usuarioLogado = { tipo: 'mestre', nome: 'Tati (Mestre)' };
-        document.getElementById('modal-login').style.display = 'none';
-        document.getElementById('usuario-logado-txt').innerText = "Logado como: Mestre (Tati)";
-        if (typeof window.aplicarPermissoes === 'function') window.aplicarPermissoes();
-        return;
-    }
-
-    // 2. Testa o acesso dos Funcionários direto da Nuvem
-    try {
+        // 2. SE NÃO FOR E-MAIL (É CPF OU NOME), TESTA OS FUNCIONÁRIOS
         var listaFuncionarios = [];
-        // Usa a sua função que já está lá no config.js
         if (typeof window.obterFuncionariosDaNuvem === 'function') {
             listaFuncionarios = await window.obterFuncionariosDaNuvem();
         }
 
         var func = listaFuncionarios.find(f => {
             var usuDb = f.usuario ? f.usuario.toLowerCase() : "";
-            // Limpa os pontos e traços do CPF para garantir que a comparação não falhe
             var cpfDb = f.cpf ? f.cpf.replace(/\D/g, '') : "";
             var inputLimpo = usuarioInput.replace(/\D/g, '');
 
-            // Bate se o que foi digitado é o usuário OU o CPF, e confere a senha
             return (usuDb === usuarioInput || (cpfDb !== "" && cpfDb === inputLimpo)) && f.senha === senhaInput;
         });
 
@@ -792,19 +811,30 @@ window.fazerLogin = async function(event) {
             return;
         }
 
+        // Se chegou até aqui, não achou nem mestre nem funcionário
         alert("Usuário, CPF ou senha incorretos!");
         btn.innerText = textoOriginal;
 
     } catch (erro) {
-        console.error("Erro no login dos funcionários:", erro);
+        console.error("Erro geral no login:", erro);
         alert("Erro ao validar login. Tente novamente.");
         btn.innerText = textoOriginal;
     }
 };
 
-window.fazerLogout = function() {
+window.fazerLogout = async function() {
+    try {
+        // Encerra a sessão oficial do Firebase Auth também
+        if (window.auth) {
+            await window.signOut(window.auth);
+        }
+    } catch(e) {
+        console.error("Erro ao deslogar do Firebase:", e);
+    }
+    
     window.usuarioLogado = null;
     document.getElementById('senha-login').value = '';
+    document.getElementById('usuario-login').value = ''; // Limpa o usuário também
     document.getElementById('modal-login').style.display = 'flex';
 };
 
@@ -1581,13 +1611,16 @@ window.removerEncomendaAdmin = async function(firestoreId) {
                 }
             });
 
-            if (alertaAtivo) {
-                textoBanner.innerText = mensagemAlerta;
-                banner.style.display = 'block';
-            } else {
-                banner.style.display = 'none';
-            }
-        };
+var badgeMenu = document.getElementById('notificacao-menu');
+
+    if (alertaAtivo) {
+        textoBanner.innerText = mensagemAlerta;
+        banner.style.display = 'block';
+        if (badgeMenu) badgeMenu.style.display = 'inline-block'; // Acende a bolinha vermelha
+    } else {
+        banner.style.display = 'none';
+        if (badgeMenu) badgeMenu.style.display = 'none'; // Apaga a bolinha
+    }        };
 
         // Verifica a cada 30 segundos
         setInterval(window.verificarLembretesEncomendas, 30000);
@@ -2878,6 +2911,14 @@ window.alternarStatusProduto = async function(prodId, statusAtual) {
 };
 window.alternarStatusProduto = alternarStatusProduto;
 
+function toggleMenu() {
+    var menu = document.getElementById("menu-dropdown");
+    if (menu.style.display === "block") {
+        menu.style.display = "none";
+    } else {
+        menu.style.display = "block";
+    }
+}
 
     </script>
     <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->
