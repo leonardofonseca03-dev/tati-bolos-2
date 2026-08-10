@@ -155,6 +155,7 @@
         <div class="chip" onclick="filtrarCategoria('cafeteria', this)">☕ Cafeteria</div>
         <div class="chip" onclick="filtrarCategoria('cookies', this)">🍪 Cookies</div>
         <div class="chip" onclick="filtrarCategoria('bebidas', this)">🥤 Bebidas</div>
+        <div class="chip" onclick="filtrarCategoria('fatias-de-bolo', this)">🍰 Fatias de Bolo</div>
         <div class="chip" onclick="filtrarCategoria('encomenda', this)" style="background: var(--light-pink); color: var(--chocolate);">🎂 Faça sua Encomenda</div>
     </div>
 
@@ -293,53 +294,49 @@ async function carregarProdutos(filtro = 'todos') {
                 listaProdutos = [];
             }
 
-            if (filtro === 'encomenda') {
-                titulo.innerText = "🎂 Faça sua Encomenda Personalizada";
-                
-                let opcoesEnc = [];
-                try { 
-                    opcoesEnc = await window.obterOpcoesEncomendaDaNuvem(); 
-                } catch(e) {}
-                
-                if (!opcoesEnc || opcoesEnc.length === 0) {
-                    opcoesEnc = [
-                        { nome: "Bolo Pequeno (Aprox. 1kg)", preco: 60.00 },
-                        { nome: "Bolo Médio (Aprox. 2kg)", preco: 110.00 },
-                        { nome: "Bolo Grande (Aprox. 3kg)", preco: 160.00 },
-                        { nome: "Caixa com 12 Doces Personalizados", preco: 45.00 }
-                    ];
-                }
+if (filtro === 'encomenda') {
+        titulo.innerText = "🎂 Faça sua Encomenda Personalizada";
 
-                let optionsHtml = '';
-                opcoesEnc.forEach(o => {
-                    optionsHtml += `<option value="${o.preco.toFixed(2)}" data-nome="${o.nome}">${o.nome} — R$ ${o.preco.toFixed(2)}</option>`;
-                });
+        let opcoesEnc = [];
+        try {
+            opcoesEnc = await window.obterOpcoesEncomendaDaNuvem();
+        } catch(e) {
+            opcoesEnc = [];
+        }
 
-                grid.innerHTML = `
-                    <div class="form-encomenda-box" style="width: 100%; box-sizing: border-box;">
-                        <p style="margin-top:0; font-size: 0.9rem; color: #666;">Escolha a opção desejada, preencha os detalhes e envie sua encomenda!</p>
-                        <form onsubmit="adicionarEncomendaCarrinho(event)">
-                            <div class="form-group"><label>Nome Completo:</label><input type="text" id="enc-nome" required placeholder="Seu nome completo"></div>
-                            <div class="form-group"><label>Telefone / WhatsApp:</label><input type="text" id="enc-tel" required placeholder="(11) 99999-9999"></div>
-                            <div style="display: flex; gap: 10px;">
-                                <div class="form-group" style="flex:1;"><label>Data de Retirada:</label><input type="date" id="enc-data" required></div>
-                                <div class="form-group" style="flex:1;"><label>Horário de Retirada:</label><input type="time" id="enc-hora" required></div>
-                            </div>
-                            <div class="form-group">
-                                <label>Opção e Valor Fixo:</label>
-                                <select id="enc-opcao" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-                                    ${optionsHtml}
-                                </select>
-                            </div>
-                            <div class="form-group"><label>Detalhes (Sabor, Tema, Cores):</label><textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea></div>
-                            <div class="form-group"><label>Foto de Referência (Opcional):</label><input type="file" id="enc-foto" accept="image/*"></div>
-                            <button type="submit" class="btn-primary">Adicionar Encomenda ao Carrinho 🛒</button>
-                        </form>
+        let optionsHtml = '';
+        if (!opcoesEnc || opcoesEnc.length === 0) {
+            optionsHtml = '<option value="">Nenhuma opção de encomenda cadastrada</option>';
+        } else {
+            opcoesEnc.forEach(o => {
+                let precoNum = parseFloat(o.preco) || 0;
+                optionsHtml += `<option value="${precoNum.toFixed(2)}" data-nome="${o.nome}">${o.nome} — R$ ${precoNum.toFixed(2)}</option>`;
+            });
+        }
+grid.innerHTML = `
+            <div class="form-encomenda-box" style="width: 100%; box-sizing: border-box;">
+                <p style="margin-top:0; font-size: 0.9rem; color: #666;">Escolha a opção desejada, preencha os detalhes e envie sua encomenda!</p>
+                <form onsubmit="adicionarEncomendaCarrinho(event)">
+                    <div class="form-group"><label>Nome Completo:</label><input type="text" id="enc-nome" required placeholder="Seu nome completo"></div>
+                    <div class="form-group"><label>Telefone / WhatsApp:</label><input type="text" id="enc-tel" required placeholder="(11) 99999-9999"></div>
+                    <div style="display: flex; gap: 10px;">
+                        <div class="form-group" style="flex:1;"><label>Data de Retirada/Entrega:</label><input type="date" id="enc-data" required></div>
+                        <div class="form-group" style="flex:1;"><label>Horário de Retirada/Entrega:</label><input type="time" id="enc-hora" required></div>
                     </div>
-                `;
-                return;
-            }
-
+                    <div class="form-group">
+                        <label>Opção e Valor Fixo:</label>
+                        <select id="enc-opcao" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Detalhes (Sabor, Tema, Cores):</label><textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea></div>
+                    <div class="form-group"><label>Foto de Referência (Opcional):</label><input type="file" id="enc-foto" accept="image/*"></div>
+                    <button type="submit" class="btn-primary">Adicionar Encomenda ao Carrinho 🛒</button>
+                </form>
+            </div>
+        `;
+        return;
+    }
             titulo.innerText = "Nosso Cardápio";
             let produtosFiltrados = [];
             if (filtro === 'todos') { produtosFiltrados = listaProdutos; } 

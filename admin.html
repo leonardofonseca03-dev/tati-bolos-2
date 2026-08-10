@@ -270,7 +270,7 @@
                     <div class="form-group"><label>Descrição:</label><input type="text" id="desc" required placeholder="Ex: Massa especial"></div>
                     <div style="display: flex; gap: 15px;">
                         <div class="form-group" style="flex: 1;"><label>Preço Original (R$):</label><input type="number" step="0.01" id="preco" required placeholder="18.90"></div>
-                        <div class="form-group" style="flex: 1;"><label>Categoria:</label><select id="categoria"><option value="salgados">Salgados</option><option value="cafeteria">Cafeteria</option><option value="cookies">Cookies</option><option value="bebidas">Bebidas</option></select></div>
+                        <div class="form-group" style="flex: 1;"><label>Categoria:</label><select id="categoria"><option value="salgados">Salgados</option><option value="cafeteria">Cafeteria</option><option value="cookies">Cookies</option><option value="bebidas">Bebidas</option><option value="fatias-de-bolo">Fatias de Bolo</option></select></div>
                     </div>
                     <div class="form-group"><label>Foto do Produto:</label><input type="file" id="imagem-file" accept="image/*" required></div>
 <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
@@ -2224,14 +2224,49 @@ window.renderizarConteudoRelatorio = async function() {
     totalGeralEl.innerText = somaTotal.toFixed(2);
 };
 
-        window.limparHistoricoRelatorio = function() {
-            if (confirm('Deseja realmente limpar o histórico da aba atual?')) {
-                if (abaRelatorioAtual === 'mesas') { vendasMesas = []; localStorage.removeItem('tati_vendas_mesas'); } 
-                else if (abaRelatorioAtual === 'cardapio') { localStorage.removeItem('tati_vendas_cardapio'); } 
-                else if (abaRelatorioAtual === 'encomendas') { encomendas = []; localStorage.removeItem('tati_encomendas'); window.carregarEncomendasAdmin(); }
-                window.renderizarConteudoRelatorio();
+window.limparHistoricoRelatorio = async function() {
+    if (confirm('Deseja realmente limpar todo o histórico desta aba na nuvem?')) {
+        try {
+            let nomeColecao = '';
+            
+            // Define qual coleção do Firebase vai ser limpa com base na aba aberta
+            if (abaRelatorioAtual === 'mesas') {
+                nomeColecao = 'vendas_mesas'; // Nome da collection de mesas no Firestore
+                vendasMesas = [];
+                localStorage.removeItem('tati_vendas_mesas');
+            } 
+            else if (abaRelatorioAtual === 'cardapio') {
+                nomeColecao = 'pedidos_online'; // Nome da collection de pedidos do cardápio
+                localStorage.removeItem('tati_vendas_cardapio');
+            } 
+            else if (abaRelatorioAtual === 'encomendas') {
+                nomeColecao = 'encomendas'; // Nome da collection de encomendas
+                encomendas = [];
+                localStorage.removeItem('tati_encomendas');
             }
-        };
+
+            if (nomeColecao) {
+                // Pega todos os documentos daquela aba e deleta um por um da nuvem
+                const snapshot = await window.getDocs(window.collection(window.db, nomeColecao));
+                const promessasDeExclusao = snapshot.docs.map(docItem => 
+                    window.deleteDoc(window.doc(window.db, nomeColecao, docItem.id))
+                );
+                await Promise.all(promessasDeExclusao);
+            }
+
+            if (abaRelatorioAtual === 'encomendas' && window.carregarEncomendasAdmin) {
+                window.carregarEncomendasAdmin();
+            }
+
+            window.renderizarConteudoRelatorio();
+            alert("Histórico da aba limpo com sucesso!");
+
+        } catch (erro) {
+            console.error("Erro ao limpar histórico:", erro);
+            alert("Erro ao tentar apagar os dados do banco de dados.");
+        }
+    }
+};
 
 var abaPedidosDiariosAtual = 'delivery';
 window.mudarAba = function(aba, btn) {
