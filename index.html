@@ -186,11 +186,17 @@
             <div style="background: #fff8fa; border: 1px dashed var(--pink); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem;">
                 <label style="color: var(--pink); margin-bottom: 8px; display: block;">🎁 <strong>Seus Dados (Para Clube de Fidelidade!)</strong></label>
                 <input type="text" id="cart-nome" placeholder="Seu Nome Completo" style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="cart-cpf" placeholder="Seu CPF (Só números)" style="flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
-                    <input type="text" id="cart-whatsapp" placeholder="WhatsApp (com DDD)" style="flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
-                </div>
-            </div>
+<!-- Container dos dados do cliente (Clube de Fidelidade) -->
+<div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+    <p style="margin: 0 0 4px 0; font-size: 0.85rem; font-weight: bold; color: #444;">🎁 Seus dados (Para o Clube de Fidelidade!)</p>
+    
+    <input type="text" id="cart-nome" placeholder="Seu nome completo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+    
+    <input type="text" id="cart-cpf" placeholder="CPF (somente números)" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+    
+    <input type="text" id="cart-whatsapp" placeholder="WhatsApp (com DDD)" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+</div>            
+</div>
 
             <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #eee;">
                 <label><strong>Tipo de Atendimento:</strong></label>
