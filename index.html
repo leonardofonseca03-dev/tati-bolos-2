@@ -425,7 +425,11 @@ async function carregarProdutos(filtro = 'todos') {
             } else { processarEncomenda(''); }
         }
 
-        function abrirCarrinho() { document.getElementById('modal-carrinho').style.display = 'flex'; atualizarCarrinhoUI(); }
+async function abrirCarrinho() { 
+    document.getElementById('modal-carrinho').style.display = 'flex'; 
+    await carregarZonasCarrinho(); 
+    atualizarCarrinhoUI(); 
+}
         function fecharCarrinho() { document.getElementById('modal-carrinho').style.display = 'none'; }
 
         function adicionarComQuantidade(id, nome, preco) {
