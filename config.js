@@ -78,7 +78,7 @@ window.excluirDaNuvem = async function(firestoreId) {
 window.obterInsumosDaNuvem = async function() {
     try {
         const querySnapshot = await getDocs(collection(db, "insumos"));
-        let lista = [];
+        let lista = []; // <-- A linha que tinha sumido está de volta aqui!
         querySnapshot.forEach((docSnap) => {
             lista.push({ firestoreId: docSnap.id, id: docSnap.id, ...docSnap.data() });
         });
@@ -246,9 +246,9 @@ window.excluirClienteDaNuvem = async function(firestoreId) {
 window.clientesAdminCache = {};
 
 window.carregarClientesAdmin = async function() {
-    let container = document.getElementById('lista-clientes-admin') || document.getElementById('lista-clientes');
-    if (!container) return;
+    if (!window.location.href.includes('admin')) return; // Trava de segurança
     
+    let container = document.getElementById('lista-clientes-admin') || document.getElementById('lista-clientes');    
     container.innerHTML = "<p style='padding: 10px;'>Carregando clientes da nuvem...</p>";
     
     var tentativas = 0;
@@ -450,9 +450,9 @@ window.excluirFuncionarioDaNuvem = async function(firestoreId) {
 window.funcionariosAdminCache = {};
 
 window.carregarFuncionariosAdmin = async function() {
-    let container = document.getElementById('lista-funcionarios-admin') || document.getElementById('lista-funcionarios');
-    if (!container) return;
+    if (!window.location.href.includes('admin')) return; // Trava de segurança
     
+    let container = document.getElementById('lista-funcionarios-admin') || document.getElementById('lista-funcionarios');    
     container.innerHTML = "<p style='padding: 10px;'>Carregando funcionários da nuvem...</p>";
     
     var tentativas = 0;
@@ -533,9 +533,10 @@ document.addEventListener("DOMContentLoaded", function() {
 // 6. MÓDULO DE PDV, MESAS E VENDAS (NUVEM)
 // ==========================================
 window.obterMesasDaNuvem = async function() {
+    if (!window.location.href.includes('admin')) return {}; // Trava de segurança
+    
     try {
-        const querySnapshot = await getDocs(collection(db, "mesas"));
-        let mesasObj = {};
+        const querySnapshot = await getDocs(collection(db, "mesas"));        let mesasObj = {};
         
         if (querySnapshot.empty) {
             let mesasIniciais = {
@@ -615,6 +616,10 @@ window.obterPedidosOnlineDaNuvem = async function() {
         });
         return lista;
     } catch (e) {
+        // Se o erro for de permissão enquanto o login do admin carrega, apenas silencia para não poluir o console
+        if (e.code === 'permission-denied') {
+            return [];
+        }
         console.error("Erro ao buscar pedidos online:", e);
         return [];
     }
@@ -669,17 +674,16 @@ window.concluirPedidoOnlineNaNuvem = async function(firestoreId) {
 // ==========================================
 window.obterZonasFreteDaNuvem = async function() {
     try {
-        const querySnapshot = await getDocs(collection(db, "zonas_frete"));
+        const querySnapshot = await getDocs(collection(db, "zonas"));
         let lista = [];
         if (querySnapshot.empty) {
-            // Zonas padrão iniciais
             let padrao = [
                 { nome: "Zona 1 (Centro, Vila Nova, Vila Operária)", taxa: 7.00 },
                 { nome: "Zona 2 (Bela Vista, Palmas, Hortênsias, Cid. Nova)", taxa: 10.00 },
                 { nome: "Zona 3 (Periferia, Estância Serra Negra)", taxa: 15.00 }
             ];
             for (let z of padrao) {
-                await addDoc(collection(db, "zonas_frete"), z);
+                await addDoc(collection(db, "zonas"), z);
                 lista.push(z);
             }
             return lista;
@@ -696,7 +700,7 @@ window.obterZonasFreteDaNuvem = async function() {
 
 window.salvarZonaFreteNaNuvem = async function(zona) {
     try {
-        await addDoc(collection(db, "zonas_frete"), zona);
+        await addDoc(collection(db, "zonas"), zona);
         return true;
     } catch (e) {
         console.error("Erro ao salvar zona de frete:", e);
@@ -706,7 +710,7 @@ window.salvarZonaFreteNaNuvem = async function(zona) {
 
 window.excluirZonaFreteDaNuvem = async function(firestoreId) {
     try {
-        await deleteDoc(doc(db, "zonas_frete", firestoreId));
+        await deleteDoc(doc(db, "zonas", firestoreId));
         return true;
     } catch (e) {
         console.error("Erro ao excluir zona de frete:", e);
@@ -725,6 +729,9 @@ window.obterEncomendasDaNuvem = async function() {
         });
         return lista;
     } catch (e) {
+        if (e.code === 'permission-denied') {
+            return [];
+        }
         console.error("Erro ao buscar encomendas:", e);
         return [];
     }
