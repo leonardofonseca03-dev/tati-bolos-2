@@ -832,6 +832,10 @@ window.fazerLogout = async function() {
         console.error("Erro ao deslogar do Firebase:", e);
     }
     
+ // Fecha o menu flutuante ao sair
+        var menuDropdown = document.getElementById('menu-dropdown');
+        if (menuDropdown) menuDropdown.style.display = 'none';
+    
     window.usuarioLogado = null;
     document.getElementById('senha-login').value = '';
     document.getElementById('usuario-login').value = ''; // Limpa o usuário também
@@ -2039,55 +2043,118 @@ window.imprimirComprovantePDF = function() {
     window.print();
 };
 
-        window.abrirZonasFrete = function() { document.getElementById('modal-zonas-frete').style.display = 'flex'; window.renderizarZonasFrete(); };
-        window.fecharZonasFrete = function() { document.getElementById('modal-zonas-frete').style.display = 'none'; };
+window.abrirZonasFrete = async function() { 
+            document.getElementById('modal-zonas-frete').style.display = 'flex'; 
+            await window.renderizarZonasFrete(); 
+        };
+
+        window.fecharZonasFrete = function() { 
+            document.getElementById('modal-zonas-frete').style.display = 'none'; 
+        };
         
-        window.salvarZonaFrete = function(event) {
+        window.salvarZonaFrete = async function(event) {
             event.preventDefault();
-            var nome = document.getElementById('zona-nome-input').value;
+            var nome = document.getElementById('zona-nome-input').value.trim();
             var taxa = parseFloat(document.getElementById('zona-taxa-input').value);
-            zonasFrete.push({ id: Date.now(), nome: nome, taxa: taxa });
-            localStorage.setItem('tati_zonas_frete', JSON.stringify(zonasFrete));
-            document.getElementById('zona-nome-input').value = ''; document.getElementById('zona-taxa-input').value = '';
-            window.renderizarZonasFrete();
-            window.carregarZonasBalcao();
-            alert("Zona adicionada!");
-        };
+            
+            if (!nome || isNaN(taxa)) {
+                alert("Preencha o nome e a taxa corretamente!");
+                return;
+            }
 
-        window.editarZonaFrete = function(id) {
-            var zona = zonasFrete.find(function(z) { return z.id === id; });
-            if(!zona) return;
-            var novoNome = prompt("Editar nome da zona (e bairros):", zona.nome);
-            if(novoNome === null) return;
-            var novaTaxaStr = prompt("Editar taxa de entrega (R$):", zona.taxa);
-            if(novaTaxaStr === null) return;
-            var novaTaxa = parseFloat(novaTaxaStr.replace(',', '.'));
-            if(isNaN(novaTaxa) || novaTaxa < 0) { alert("Valor inválido!"); return; }
-            zona.nome = novoNome.trim(); zona.taxa = novaTaxa;
-            localStorage.setItem('tati_zonas_frete', JSON.stringify(zonasFrete));
-            window.renderizarZonasFrete();
-            window.carregarZonasBalcao();
-            alert("Zona atualizada com sucesso!");
-        };
+            try {
+                // Salva direto na nuvem (Firestore)
+                await window.addDoc(window.collection(window.db, "zonas"), {
+                    nome: nome,
+                    taxa: taxa
+                });
 
-        window.excluirZonaFrete = function(id) {
-            if(confirm('Tem certeza que deseja excluir esta zona?')) {
-                zonasFrete = zonasFrete.filter(function(z) { return z.id !== id; });
-                localStorage.setItem('tati_zonas_frete', JSON.stringify(zonasFrete));
-                window.renderizarZonasFrete();
-                window.carregarZonasBalcao();
+                document.getElementById('zona-nome-input').value = ''; 
+                document.getElementById('zona-taxa-input').value = '';
+                
+                await window.renderizarZonasFrete();
+                if(window.carregarZonasBalcao) window.carregarZonasBalcao();
+                
+                alert("Zona adicionada na nuvem com sucesso!");
+            } catch (erro) {
+                console.error("Erro ao salvar zona:", erro);
+                alert("Erro ao salvar zona no banco de dados.");
             }
         };
 
-        window.renderizarZonasFrete = function() {
-            var container = document.getElementById('lista-zonas-frete'); container.innerHTML = '';
-            if(zonasFrete.length === 0) { container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.9rem;">Nenhuma zona cadastrada.</p>'; return; }
+        window.editarZonaFrete = async function(idFirestore) {
+            var zonasAtuais = await window.obterZonasFreteDaNuvem();
+            var zona = zonasAtuais.find(function(z) { return z.firestoreId === idFirestore; });
+            if(!zona) return;
+
+            var novoNome = prompt("Editar nome da zona (e bairros):", zona.nome);
+            if(novoNome === null) return;
+            
+            var novaTaxaStr = prompt("Editar taxa de entrega (R$):", zona.taxa);
+            if(novaTaxaStr === null) return;
+            
+            var novaTaxa = parseFloat(novaTaxaStr.replace(',', '.'));
+            if(isNaN(novaTaxa) || novaTaxa < 0) { alert("Valor inválido!"); return; }
+
+            try {
+                // Atualiza direto no documento do Firestore usando o ID real dele
+                const zonaRef = window.doc(window.db, "zonas", idFirestore);
+                await window.updateDoc(zonaRef, {
+                    nome: novoNome.trim(),
+                    taxa: novaTaxa
+                });
+
+                await window.renderizarZonasFrete();
+                if(window.carregarZonasBalcao) window.carregarZonasBalcao();
+                
+                alert("Zona atualizada na nuvem com sucesso!");
+            } catch (erro) {
+                console.error("Erro ao atualizar zona:", erro);
+                alert("Erro ao atualizar no banco de dados.");
+            }
+        };
+
+        window.excluirZonaFrete = async function(idFirestore) {
+            if(confirm('Tem certeza que deseja excluir esta zona da nuvem?')) {
+                try {
+                    // Deleta direto do Firestore
+                    await window.deleteDoc(window.doc(window.db, "zonas", idFirestore));
+
+                    await window.renderizarZonasFrete();
+                    if(window.carregarZonasBalcao) window.carregarZonasBalcao();
+                    
+                    alert("Zona excluída com sucesso!");
+                } catch (erro) {
+                    console.error("Erro ao excluir zona:", erro);
+                    alert("Erro ao excluir do banco de dados.");
+                }
+            }
+        };
+
+        window.renderizarZonasFrete = async function() {
+            var container = document.getElementById('lista-zonas-frete'); 
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.9rem;">Carregando zonas da nuvem...</p>';
+            
+            let zonasFrete = [];
+            try {
+                zonasFrete = await window.obterZonasFreteDaNuvem();
+            } catch(e) {
+                zonasFrete = [];
+            }
+
+            container.innerHTML = '';
+            if(zonasFrete.length === 0) { 
+                container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.9rem;">Nenhuma zona cadastrada.</p>'; 
+                return; 
+            }
+
             zonasFrete.forEach(function(z) {
+                // Usa o firestoreId para permitir edição e exclusão real na nuvem
                 container.innerHTML += '<div style="background: white; border: 1px solid #ccc; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">' +
                     '<div><strong style="color: var(--chocolate); font-size: 0.95rem;">' + z.nome + '</strong><br><span style="color: var(--pink); font-weight: bold; font-size: 0.9rem;">R$ ' + Number(z.taxa).toFixed(2) + '</span></div>' +
                     '<div style="display: flex; gap: 5px;">' +
-                        '<button onclick="editarZonaFrete(' + z.id + ')" style="background: #e3f2fd; color: #1565c0; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Editar</button>' +
-                        '<button onclick="excluirZonaFrete(' + z.id + ')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>' +
+                        '<button onclick="editarZonaFrete(\'' + z.firestoreId + '\')" style="background: #e3f2fd; color: #1565c0; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Editar</button>' +
+                        '<button onclick="excluirZonaFrete(\'' + z.firestoreId + '\')" style="background: #ffebee; color: #c62828; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">Excluir</button>' +
                     '</div>' +
                 '</div>';
             });

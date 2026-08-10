@@ -446,21 +446,27 @@ async function abrirCarrinho() {
         }
 
 async function carregarZonasCarrinho() {
-            let zonasFrete = [];
-            try {
-                zonasFrete = await window.obterZonasFreteDaNuvem();
-            } catch(e) {
-                zonasFrete = [];
-            }
+    let zonasFrete = [];
+    try {
+        zonasFrete = await window.obterZonasFreteDaNuvem();
+        console.log("🔥 Zonas que o Firebase entregou para o cardápio:", zonasFrete);
+    } catch(e) {
+        zonasFrete = [];
+    }
+    
+    const selectEntrega = document.getElementById('tipo-entrega');
+    if(selectEntrega) {
+        selectEntrega.innerHTML = '<option value="Retirada na Loja" data-taxa="0">Retirada na Loja (R. São Geraldo) - Grátis</option>';
+        
+        zonasFrete.forEach(z => {
+            // Garante que o nome e a taxa venham dinamicamente do Firebase
+            let nomeZona = z.nome || "Zona";
+            let taxaZona = parseFloat(z.taxa) || 0;
             
-            const selectEntrega = document.getElementById('tipo-entrega');
-            if(selectEntrega) {
-                selectEntrega.innerHTML = '<option value="Retirada na Loja" data-taxa="0">Retirada na Loja (R. São Geraldo) - Grátis</option>';
-                zonasFrete.forEach(z => {
-                    selectEntrega.innerHTML += `<option value="Entrega: ${z.nome}" data-taxa="${z.taxa}">Entrega: ${z.nome} - R$ ${Number(z.taxa).toFixed(2)}</option>`;
-                });
-            }
-        }
+            selectEntrega.innerHTML += `<option value="Entrega: ${nomeZona}" data-taxa="${taxaZona}">Entrega: ${nomeZona} - R$ ${taxaZona.toFixed(2)}</option>`;
+        });
+    }
+}
 
         function verificarEntrega() {
             const selectEntrega = document.getElementById('tipo-entrega');
