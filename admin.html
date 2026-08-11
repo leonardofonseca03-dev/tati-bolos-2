@@ -288,24 +288,54 @@
                 </form>
             </div>
 
-            <div class="card" style="border-left: 4px solid #ff9800;">
-                <h3 style="margin-top: 0; color: #ff9800;">🎂 Gerenciar Opções de Encomenda (Bolos/Caixas)</h3>
-                <p style="font-size: 0.85rem; color: #666;">Adicione, edite ou remova os tamanhos e preços que aparecem no formulário de encomendas.</p>
-                <form onsubmit="salvarOpcaoEncomenda(event)">
-                    <div style="display: flex; gap: 10px; align-items: flex-end;">
-                        <div class="form-group" style="flex: 2; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Nome / Tamanho:</label>
-                            <input type="text" id="opt-enc-nome" required placeholder="Ex: Bolo Especial 2kg">
-                        </div>
-                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Valor Fixo (R$):</label>
-                            <input type="number" step="0.01" id="opt-enc-preco" required placeholder="110.00">
-                        </div>
-                        <button type="submit" style="background: #ff9800; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 42px;">+ Adicionar</button>
-                    </div>
-                </form>
-                <div id="lista-opcoes-encomenda" style="margin-top: 15px;"></div>
+<div class="card" style="margin-top: 20px;">
+    <h3 style="color: var(--pink);">🎂 Gerenciar Opções de Encomenda</h3>
+    <form id="form-nova-opcao" onsubmit="salvarOpcaoEncomenda(event)" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+        <div class="form-group" style="flex: 2;">
+            <label>Nome / Tamanho:</label>
+            <input type="text" id="enc-novo-nome" required placeholder="Ex: Bolo Especial 2kg">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Valor (R$):</label>
+            <input type="number" step="0.01" id="enc-novo-preco" required placeholder="110.00">
+        </div>
+        <button type="submit" style="background: var(--pink); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">+ Adicionar</button>
+    </form>
+    <div id="lista-opcoes-encomenda" style="margin-top: 15px;">
+        <!-- Lista gerada dinamicamente via JS -->
+    </div>
+</div>
+
+<div class="card" style="border-left: 4px solid var(--pink); margin-top: 20px;">
+    <h3 style="margin-top: 0; color: var(--pink);">🧁 Gerenciar Complementos de Encomenda</h3>
+    <p style="font-size: 0.85rem; color: #666;">Cadastre massas, recheios, opcionais e sabores com seus respectivos valores adicionais (se houver).</p>
+    
+    <form onsubmit="salvarComplemento(event)">
+        <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                <label style="font-size: 0.85rem;">Tipo:</label>
+                <select id="comp-tipo" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                    <option value="massa">Massa</option>
+                    <option value="recheio">Recheio</option>
+                    <option value="opcional">Opcional</option>
+                    <option value="sabor">Sabor</option>
+                </select>
             </div>
+            <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                <label style="font-size: 0.85rem;">Nome do Item:</label>
+                <input type="text" id="comp-nome" required placeholder="Ex: Ninho com Nutella / Massa Chocolate">
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 120px; margin-bottom: 0;">
+                <label style="font-size: 0.85rem;">Valor Adicional (R$):</label>
+                <input type="number" step="0.01" id="comp-preco" value="0.00" placeholder="0.00">
+            </div>
+            <button type="submit" style="background: var(--pink); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 42px;">+ Adicionar</button>
+        </div>
+    </form>
+    
+    <div id="lista-complementos-admin" style="margin-top: 15px;"></div>
+</div>
+
 
             <div class="card">
                 <h3 style="margin-top: 0; color: var(--pink);">Produtos Cadastrados</h3>
@@ -1145,108 +1175,117 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // GESTÃO DE OPÇÕES DE ENCOMENDA NO ADMIN (INTEGRADO À NUVEM)
 
+// Função para Salvar/Adicionar
 window.salvarOpcaoEncomenda = async function(event) {
     event.preventDefault();
-    var nomeInput = document.getElementById('opt-enc-nome');
-    var precoInput = document.getElementById('opt-enc-preco');
     
-    if (!nomeInput || !precoInput) return;
-    var nome = nomeInput.value.trim();
-    var preco = parseFloat(precoInput.value);
+    // Procura por qualquer um dos IDs possíveis para nunca dar erro de 'null'
+    const inputNome = document.getElementById('opt-enc-nome') || document.getElementById('enc-novo-nome');
+    const inputPreco = document.getElementById('opt-enc-preco') || document.getElementById('enc-novo-preco');
 
-    if (!nome || isNaN(preco)) {
-        return alert("Preencha o nome e um preço válido!");
-    }
-
-    var novaOpcao = {
-        id: 'opt_' + Date.now(),
-        nome: nome,
-        preco: preco
-    };
-
-    var sucesso = await window.salvarOpcaoEncomendaNaNuvem(novaOpcao);
-    if (sucesso) {
-        nomeInput.value = '';
-        precoInput.value = '';
-        window.renderizarOpcoesEncomendaAdmin();
-        if (typeof window.carregarOpcoesSelectBalcao === 'function') {
-            window.carregarOpcoesSelectBalcao();
-        }
-        alert("Opção cadastrada na nuvem com sucesso!");
-    } else {
-        alert("Erro ao cadastrar opção.");
-    }
-};
-
-window.renderizarOpcoesEncomendaAdmin = async function() {
-    var container = document.getElementById('lista-opcoes-encomenda');
-    if (!container) return;
-    
-    container.innerHTML = '<p style="padding: 10px;">Carregando opções da nuvem...</p>';
-    
-    var opcoesNuvem = await window.obterOpcoesEncomendaDaNuvem();
-    container.innerHTML = '';
-    
-    if (opcoesNuvem.length === 0) {
-        container.innerHTML = '<p style="color: #888; padding: 10px;">Nenhuma opção cadastrada na nuvem.</p>';
+    if (!inputNome || !inputPreco) {
+        alert("Erro: Os campos do formulário não foram encontrados no HTML.");
         return;
     }
 
-    opcoesNuvem.forEach(function(o) {
-        var precoFmt = 'R$ ' + Number(o.preco || 0).toFixed(2);
-        container.innerHTML += `
-            <div style="background: #fafafa; border: 1px solid #eee; padding: 10px; margin-bottom: 5px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-                <div><strong>${o.nome}</strong> – <span style="color: var(--pink-primary, #d63384);">${precoFmt}</span></div>
-                <div style="display: flex; gap: 5px;">
-                    <button onclick="editarOpcaoEncomenda('${o.firestoreId}')" style="background: #ffc107; color: #000; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Editar</button>
-                    <button onclick="excluirOpcaoEncomenda('${o.firestoreId}')" style="background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Excluir</button>
-                </div>
-            </div>
-        `;
-    });
-};
+    const nome = inputNome.value.trim();
+    // Troca vírgula por ponto automaticamente caso digitem "100,00"
+    const precoTratado = inputPreco.value.replace(',', '.');
+    const preco = parseFloat(precoTratado);
 
-window.editarOpcaoEncomenda = async function(firestoreId) {
-    var novoNomeStr = prompt("Editar nome:");
-    if (novoNomeStr === null) return;
-    var novoNome = novoNomeStr.trim();
-    if (!novoNome) return alert("Nome inválido!");
-
-    var novoPrecoStr = prompt("Editar valor (R$):");
-    if (novoPrecoStr === null) return;
-    var novoPreco = parseFloat(novoPrecoStr.replace(',', '.'));
-    if (isNaN(novoPreco) || novoPreco < 0) {
-        return alert("Valor inválido!");
+    if (!nome || isNaN(preco)) {
+        alert("Por favor, preencha um nome e um valor válido!");
+        return;
     }
 
-    var sucesso = await window.atualizarOpcaoEncomendaNaNuvem(firestoreId, {
-        nome: novoNome,
-        preco: novoPreco
-    });
+    try {
+        await window.addDoc(window.collection(window.db, "opcoes_encomenda"), { 
+            nome: nome, 
+            preco: preco 
+        });
+        inputNome.value = '';
+        inputPreco.value = '';
+        await window.renderizarOpcoesEncomendaAdmin();
+        alert("Opção adicionada com sucesso!");
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao salvar opção no Firebase.");
+    }
+};
 
-    if (sucesso) {
-        window.renderizarOpcoesEncomendaAdmin();
-        if (typeof window.carregarOpcoesSelectBalcao === 'function') {
-            window.carregarOpcoesSelectBalcao();
+// Função para Listar na Admin (com botão Editar e blindagem contra NaN)
+window.renderizarOpcoesEncomendaAdmin = async function() {
+    const container = document.getElementById('lista-opcoes-encomenda');
+    if (!container) return;
+    container.innerHTML = '<p>Carregando opções...</p>';
+    
+    try {
+        const querySnapshot = await window.getDocs(window.collection(window.db, "opcoes_encomenda"));
+        container.innerHTML = '';
+        
+        if (querySnapshot.empty) {
+            container.innerHTML = '<p style="color: #666; font-size: 0.8rem;">Nenhuma opção cadastrada na nuvem.</p>';
+            return;
         }
-        alert("Atualizado na nuvem com sucesso!");
-    } else {
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            // Proteção para garantir que pegue o nome e o preço independente do formato antigo
+            const nome = data.nome || data.titulo || "Item sem nome";
+            const preco = Number(data.preco !== undefined ? data.preco : (data.valor || 0));
+            
+            container.innerHTML += `
+                <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center;">
+                    <span style="font-weight: 500;">${nome} — <span style="color: var(--pink);">R$ ${isNaN(preco) ? '0.00' : preco.toFixed(2)}</span></span>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="editarOpcaoEncomenda('${doc.id}', '${nome.replace(/'/g, "\\'")}', ${isNaN(preco) ? 0 : preco})" style="background: #e3f2fd; color: #1565c0; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Editar</button>
+                        <button onclick="excluirOpcaoEncomenda('${doc.id}')" style="background: #ffebee; color: #c62828; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Excluir</button>
+                    </div>
+                </div>`;
+        });
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = 'Erro ao carregar.';
+    }
+};
+
+// Função para Editar Opção
+window.editarOpcaoEncomenda = async function(id, nomeAtual, precoAtual) {
+    const novoNome = prompt("Editar Nome / Tamanho:", nomeAtual);
+    if (novoNome === null) return;
+    
+    const novoPrecoStr = prompt("Editar Valor (R$):", precoAtual);
+    if (novoPrecoStr === null) return;
+    
+    const novoPreco = parseFloat(novoPrecoStr.replace(',', '.'));
+
+    if (!novoNome.trim() || isNaN(novoPreco)) {
+        alert("Por favor, preencha um nome e um valor válido!");
+        return;
+    }
+
+    try {
+        await window.updateDoc(window.doc(window.db, "opcoes_encomenda", id), {
+            nome: novoNome.trim(),
+            preco: novoPreco
+        });
+        await window.renderizarOpcoesEncomendaAdmin();
+        alert("Opção atualizada com sucesso!");
+    } catch (e) {
+        console.error(e);
         alert("Erro ao atualizar a opção.");
     }
 };
 
-window.excluirOpcaoEncomenda = async function(firestoreId) {
-    if (!confirm("Deseja excluir esta opção da nuvem?")) return;
-    
-    var sucesso = await window.excluirOpcaoEncomendaDaNuvem(firestoreId);
-    if (sucesso) {
-        window.renderizarOpcoesEncomendaAdmin();
-        if (typeof window.carregarOpcoesSelectBalcao === 'function') {
-            window.carregarOpcoesSelectBalcao();
+// Função para Excluir
+window.excluirOpcaoEncomenda = async function(id) {
+    if(confirm('Tem certeza que deseja remover esta opção de encomenda?')) {
+        try {
+            await window.deleteDoc(window.doc(window.db, "opcoes_encomenda", id));
+            await window.renderizarOpcoesEncomendaAdmin();
+        } catch(e) {
+            alert("Erro ao excluir.");
         }
-        alert("Opção excluída com sucesso!");
-    } else {
-        alert("Erro ao excluir a opção.");
     }
 };
 
@@ -3022,6 +3061,66 @@ function toggleMenu() {
     }
 }
 
+window.salvarComplemento = async function(event) {
+    event.preventDefault();
+    const tipo = document.getElementById('comp-tipo').value;
+    const nome = document.getElementById('comp-nome').value.trim();
+    const preco = parseFloat(document.getElementById('comp-preco').value.toString().replace(',', '.')) || 0;
+
+    try {
+        await window.addDoc(window.collection(window.db, "complementos_encomenda"), {
+            tipo: tipo,
+            nome: nome,
+            preco: preco
+        });
+        document.getElementById('comp-nome').value = '';
+        document.getElementById('comp-preco').value = '0.00';
+        await window.renderizarComplementosAdmin();
+        alert("Complemento cadastrado com sucesso!");
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao salvar complemento.");
+    }
+};
+
+window.renderizarComplementosAdmin = async function() {
+    const container = document.getElementById('lista-complementos-admin');
+    if (!container) return;
+    container.innerHTML = '<p>Carregando complementos...</p>';
+
+    try {
+        const querySnapshot = await window.getDocs(window.collection(window.db, "complementos_encomenda"));
+        container.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            container.innerHTML = '<p style="color: #666; font-size: 0.8rem;">Nenhum complemento cadastrado.</p>';
+            return;
+        }
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            container.innerHTML += `
+                <div style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; align-items: center;">
+                    <span><b>[${data.tipo.toUpperCase()}]</b> ${data.nome} — <span style="color: var(--pink);">+ R$ ${Number(data.preco).toFixed(2)}</span></span>
+                    <button onclick="excluirComplemento('${doc.id}')" style="background: #ffebee; color: #c62828; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Excluir</button>
+                </div>`;
+        });
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = 'Erro ao carregar complementos.';
+    }
+};
+
+window.excluirComplemento = async function(id) {
+    if (confirm('Deseja excluir este complemento?')) {
+        try {
+            await window.deleteDoc(window.doc(window.db, "complementos_encomenda", id));
+            await window.renderizarComplementosAdmin();
+        } catch (e) {
+            alert("Erro ao excluir.");
+        }
+    }
+};
     </script>
     <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->
 <div style="text-align: center; padding: 20px 0; margin-top: 30px; border-top: 1px solid #eee; font-size: 0.85rem; color: #666;">

@@ -161,6 +161,10 @@
         <div class="chip" onclick="filtrarCategoria('encomenda', this)" style="background: var(--light-pink); color: var(--chocolate);">🎂 Faça sua Encomenda</div>
     </div>
 
+<div id="container-complementos" style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin: 10px 0;">
+    <!-- Os complementos vão carregar aqui automaticamente -->
+</div>
+
     <main>
         <h2 class="section-title" id="titulo-categoria">Nosso Cardápio</h2>
         <div class="product-grid" id="grid-produtos"></div>
@@ -325,21 +329,33 @@ grid.innerHTML = `
                         <div class="form-group" style="flex:1;"><label>Data de Retirada/Entrega:</label><input type="date" id="enc-data" required></div>
                         <div class="form-group" style="flex:1;"><label>Horário de Retirada/Entrega:</label><input type="time" id="enc-hora" required></div>
                     </div>
-                    <div class="form-group">
+<div class="form-group">
                         <label>Opção e Valor Fixo:</label>
                         <select id="enc-opcao" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
                             ${optionsHtml}
                         </select>
                     </div>
-                    <div class="form-group"><label>Detalhes (Sabor, Tema, Cores):</label><textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea></div>
-                    <div class="form-group"><label>Foto de Referência (Opcional):</label><input type="file" id="enc-foto" accept="image/*"></div>
+
+                    <!-- CAIXINHA DE COMPLEMENTOS DENTRO DO FORMULÁRIO -->
+                    <div class="form-group">
+                        <label>Complementos e Adicionais:</label>
+                        <div id="container-complementos" style="background: #fdfdfd; padding: 12px; border: 1px solid #ddd; border-radius: 5px; max-height: 200px; overflow-y: auto;">
+                            Carregando complementos...
+                        </div>
+                    </div>
+
+                    <div class="form-group"><label>Detalhes (Sabor, Tema, Cores):</label><textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea></div>                    <div class="form-group"><label>Foto de Referência (Opcional):</label><input type="file" id="enc-foto" accept="image/*"></div>
                     <button type="submit" class="btn-primary">Adicionar Encomenda ao Carrinho 🛒</button>
                 </form>
             </div>
         `;
+
+        // CHAMA A FUNÇÃO AQUI PARA PREENCHER A CAIXINHA NA HORA
+        carregarComplementosNoCardapio();
+
         return;
     }
-            titulo.innerText = "Nosso Cardápio";
+                titulo.innerText = "Nosso Cardápio";
             let produtosFiltrados = [];
             if (filtro === 'todos') { produtosFiltrados = listaProdutos; } 
             else if (filtro === 'promocao') { produtosFiltrados = listaProdutos.filter(p => p.promocao === true); } 
@@ -386,43 +402,73 @@ grid.innerHTML = `
             carregarProdutos(catId);
         }
 
-        function adicionarEncomendaCarrinho(event) {
-            event.preventDefault();
-            const fileInput = document.getElementById('enc-foto');
-            const file = fileInput.files[0];
-            const selectOpcao = document.getElementById('enc-opcao');
-            const selectedOption = selectOpcao.options[selectOpcao.selectedIndex];
-            const nomeOpcao = selectedOption.getAttribute('data-nome');
-            const precoOpcao = parseFloat(selectOpcao.value);
+function adicionarEncomendaCarrinho(event) {
+    event.preventDefault();
+    
+    // Elementos Base
+    const fileInput = document.getElementById('enc-foto');
+    const file = fileInput.files[0];
+    const selectOpcao = document.getElementById('enc-opcao');
+    const selectedOption = selectOpcao.options[selectOpcao.selectedIndex];
+    const nomeOpcao = selectedOption.getAttribute('data-nome');
+    const basePreco = parseFloat(selectOpcao.value) || 0;
 
-            document.getElementById('cart-nome').value = document.getElementById('enc-nome').value;
-            document.getElementById('cart-whatsapp').value = document.getElementById('enc-tel').value;
+    // --- NOVA LÓGICA: SOMA DOS COMPLEMENTOS ---
+    let extras = [];
+    let totalExtras = 0;
+    
+    // Coleta todos os checkboxes marcados com a classe 'check-complemento'
+    document.querySelectorAll('.check-complemento:checked').forEach(cb => {
+        extras.push(cb.value); // O valor (nome) do item
+        totalExtras += parseFloat(cb.dataset.preco) || 0; // O preço extra
+    });
 
-            const processarEncomenda = (fotoBase64 = '') => {
-                const dadosEncomenda = {
-                    tipo: "encomenda", 
-                    nomeCliente: document.getElementById('enc-nome').value, 
-                    telefone: document.getElementById('enc-tel').value, 
-                    dataRetirada: document.getElementById('enc-data').value, 
-                    horaRetirada: document.getElementById('enc-hora').value, 
-                    opcaoEscolhida: nomeOpcao, 
-                    descricao: document.getElementById('enc-desc').value, 
-                    preco: precoOpcao, 
-                    foto: fotoBase64, 
-                    quantidade: 1
-                };
-                carrinho.push({ id: 'enc_' + Date.now(), name: `🎂 Encomenda: ${nomeOpcao}`, preco: precoOpcao, quantidade: 1, isEncomenda: true, detalhes: dadosEncomenda });
-                
-                // DISPARA O TOAST DE SUCESSO
-                mostrarToast('🎂 Encomenda adicionada ao carrinho!');
-            };
+    const precoFinal = basePreco + totalExtras;
+    // Junta a descrição original com os extras escolhidos
+    const descricaoCompleta = document.getElementById('enc-desc').value + 
+                              (extras.length > 0 ? "\nExtras: " + extras.join(", ") : "");
+    // ------------------------------------------
 
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) { processarEncomenda(e.target.result); };
-                reader.readAsDataURL(file);
-            } else { processarEncomenda(''); }
-        }
+    document.getElementById('cart-nome').value = document.getElementById('enc-nome').value;
+    document.getElementById('cart-whatsapp').value = document.getElementById('enc-tel').value;
+
+    const processarEncomenda = (fotoBase64 = '') => {
+        const dadosEncomenda = {
+            tipo: "encomenda", 
+            nomeCliente: document.getElementById('enc-nome').value, 
+            telefone: document.getElementById('enc-tel').value, 
+            dataRetirada: document.getElementById('enc-data').value, 
+            horaRetirada: document.getElementById('enc-hora').value, 
+            opcaoEscolhida: nomeOpcao,
+            complementos: extras.join(", "), // Salva o nome dos extras
+            descricao: descricaoCompleta,
+            preco: precoFinal, // Preço final calculado
+            foto: fotoBase64, 
+            quantidade: 1
+        };
+
+        // Adiciona ao carrinho com o nome atualizado e o preço calculado
+        carrinho.push({ 
+            id: 'enc_' + Date.now(), 
+            name: `🎂 Encomenda: ${nomeOpcao} ${extras.length > 0 ? '(' + extras.join(", ") + ')' : ''}`, 
+            preco: precoFinal, 
+            quantidade: 1, 
+            isEncomenda: true, 
+            detalhes: dadosEncomenda 
+        });
+        
+        // DISPARA O TOAST DE SUCESSO
+        mostrarToast('🎂 Encomenda adicionada ao carrinho!');
+    };
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) { processarEncomenda(e.target.result); };
+        reader.readAsDataURL(file);
+    } else { 
+        processarEncomenda(''); 
+    }
+}
 
 async function abrirCarrinho() { 
     document.getElementById('modal-carrinho').style.display = 'flex'; 
@@ -657,6 +703,57 @@ function copiarChavePix() {
     });
 }
 window.copiarChavePix = copiarChavePix;
+
+async function carregarOpcoesParaCardapio() {
+    const select = document.getElementById('enc-opcao');
+    if (!select) return;
+
+    try {
+        const querySnapshot = await window.getDocs(window.collection(window.db, "opcoes_encomenda"));
+        select.innerHTML = '<option value="">Selecione...</option>';
+        
+        querySnapshot.forEach((doc) => {
+            const item = doc.data();
+            select.innerHTML += `<option value="${item.preco}" data-nome="${item.nome}">${item.nome} - R$ ${Number(item.preco).toFixed(2)}</option>`;
+        });
+    } catch (e) {
+        console.error("Erro:", e);
+    }
+}
+
+async function carregarComplementosNoCardapio() {
+    try {
+        const snapshot = await window.getDocs(window.collection(window.db, "complementos_encomenda"));
+        const container = document.getElementById('container-complementos');
+        if (!container) return;
+
+        let html = '';
+        
+        // Agrupa por tipo
+        const tipos = ['massa', 'recheio', 'opcional', 'sabor'];
+        
+        tipos.forEach(tipo => {
+            const itens = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(item => item.tipo === tipo);
+
+            if (itens.length > 0) {
+                html += `<div style="margin-bottom: 10px;"><strong>${tipo.charAt(0).toUpperCase() + tipo.slice(1)}:</strong><br>`;
+                itens.forEach(item => {
+                    html += `
+                        <label style="display: block; font-size: 0.9rem;">
+                            <input type="checkbox" class="check-complemento" data-preco="${item.preco}" value="${item.nome}">
+                            ${item.nome} ${item.preco > 0 ? '(+ R$ ' + Number(item.preco).toFixed(2) + ')' : ''}
+                        </label>`;
+                });
+                html += `</div>`;
+            }
+        });
+        container.innerHTML = html;
+    } catch (e) {
+        console.error("Erro ao carregar complementos:", e);
+    }
+}
 
         </script>
 <!-- Footer / Assinatura -->
