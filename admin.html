@@ -3099,15 +3099,67 @@ window.renderizarComplementosAdmin = async function() {
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
+            const tipo = data.tipo || 'massa';
+            const nome = data.nome || 'Item sem nome';
+            const preco = Number(data.preco) || 0;
+
             container.innerHTML += `
-                <div style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; align-items: center;">
-                    <span><b>[${data.tipo.toUpperCase()}]</b> ${data.nome} — <span style="color: var(--pink);">+ R$ ${Number(data.preco).toFixed(2)}</span></span>
-                    <button onclick="excluirComplemento('${doc.id}')" style="background: #ffebee; color: #c62828; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Excluir</button>
+                <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center;">
+                    <span><b>[${tipo.toUpperCase()}]</b> ${nome} — <span style="color: var(--pink);">+ R$ ${preco.toFixed(2)}</span></span>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="editarComplemento('${doc.id}', '${tipo}', '${nome.replace(/'/g, "\\'")}', ${preco})" style="background: #e3f2fd; color: #1565c0; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Editar</button>
+                        <button onclick="excluirComplemento('${doc.id}')" style="background: #ffebee; color: #c62828; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Excluir</button>
+                    </div>
                 </div>`;
         });
     } catch (e) {
         console.error(e);
-        container.innerHTML = 'Erro ao carregar complementos.';
+        container.innerHTML = '<p style="color: red; font-size: 0.8rem;">Erro ao carregar complementos da nuvem.</p>';
+    }
+};
+
+// CHAMA AUTOMATICAMENTE AO CARREGAR A PÁGINA
+setTimeout(() => {
+    if (typeof window.renderizarComplementosAdmin === 'function') {
+        window.renderizarComplementosAdmin();
+    }
+}, 500);
+
+// Nova função para Editar o Complemento
+window.editarComplemento = async function(id, tipoAtual, nomeAtual, precoAtual) {
+    const novoTipo = prompt("Editar Tipo (massa, recheio, opcional ou sabor):", tipoAtual);
+    if (novoTipo === null) return;
+    
+    const novoNome = prompt("Editar Nome do Item:", nomeAtual);
+    if (novoNome === null) return;
+    
+    const novoPrecoStr = prompt("Editar Valor Adicional (R$):", precoAtual);
+    if (novoPrecoStr === null) return;
+    
+    const novoPreco = parseFloat(novoPrecoStr.replace(',', '.'));
+    const tipoFormatado = novoTipo.trim().toLowerCase();
+
+    if (!['massa', 'recheio', 'opcional', 'sabor'].includes(tipoFormatado)) {
+        alert("Tipo inválido! Use apenas: massa, recheio, opcional ou sabor.");
+        return;
+    }
+
+    if (!novoNome.trim() || isNaN(novoPreco)) {
+        alert("Por favor, preencha um nome e um valor válido!");
+        return;
+    }
+
+    try {
+        await window.updateDoc(window.doc(window.db, "complementos_encomenda", id), {
+            tipo: tipoFormatado,
+            nome: novoNome.trim(),
+            preco: novoPreco
+        });
+        await window.renderizarComplementosAdmin();
+        alert("Complemento atualizado com sucesso!");
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao atualizar o complemento.");
     }
 };
 
