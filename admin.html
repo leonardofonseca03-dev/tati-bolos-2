@@ -212,19 +212,24 @@
 <!-- CABEÇALHO ÚNICO E LIMPO -->
 <header style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 1px solid #eee; margin-bottom: 20px; position: relative;">
     
-    <!-- Lado Esquerdo: Menu + Título Único -->
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <!-- Botão do Menu -->
-<!-- Botão do Menu -->
-<div onclick="toggleMenu()" style="cursor: pointer; font-size: 1rem; color: var(--pink); background: white; border: 2px solid var(--pink); padding: 8px 14px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 6px; user-select: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative;">
-    ☰ Menu 
-    <span id="notificacao-menu" style="display: none; background: #ff4d4d; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: bold;">1</span>
-</div>        
-        <div>
-            <h2 style="font-size: 1.2rem; margin:0; color: var(--pink);">🍰 Painel Admin - Tati Amor Doce</h2>
-            <span id="usuario-logado-txt" style="font-size: 0.75rem; color: #666;"></span>
-        </div>
+<!-- Botão de Menu Retrátil -->
+<div style="position: relative; display: inline-block; margin-bottom: 15px;">
+    <button onclick="toggleMenuAdmin()" style="background: white; color: var(--pink); border: 2px solid var(--pink); padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+        ☰ Menu
+    </button>
+
+    <!-- Menu Suspenso (Gaveta) -->
+    <div id="admin-menu-dropdown" style="display: none; position: absolute; top: 45px; left: 0; background: white; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 10px; padding: 12px; z-index: 1000; min-width: 220px; flex-direction: column; gap: 8px;">
+        <button class="btn-aba" onclick="mudarAba('produtos'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Produtos & Encomendas</button>
+        <button class="btn-aba" onclick="mudarAba('insumos'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Insumos</button>
+        <button class="btn-aba" onclick="mudarAba('encomendas'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Encomendas</button>
+        <button class="btn-aba" onclick="mudarAba('clientes'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Clientes 🎁</button>
+        <button class="btn-aba" onclick="mudarAba('funcionarios'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Funcionários 👨‍🍳</button>
+        <button class="btn-aba" onclick="mudarAba('pdv'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">PDV e Mesas</button>
+        <button class="btn-aba" onclick="mudarAba('pedidos'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Pedidos Online 🔔</button>
+        <button class="btn-aba" onclick="mudarAba('configuracoes'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">⚙️ Configurações</button>
     </div>
+</div>
 
     <!-- Lado Direito: Atalho rápido para o Cardápio -->
     <div>
@@ -249,17 +254,12 @@
 
     <main>
 <div class="nav-tabs" id="menu-abas-admin">
-            <button class="tab-btn active" data-aba="produtos" onclick="mudarAba('produtos', this)">Produtos & Encomendas</button>
-            <button class="tab-btn" data-aba="insumos" onclick="mudarAba('insumos', this)">Insumos</button>
             <button class="tab-btn" data-aba="encomendas" onclick="mudarAba('encomendas', this)">Encomendas</button>
-            <button class="tab-btn" data-aba="clientes" onclick="mudarAba('clientes', this)">Clientes 🎁</button>
-            <button class="tab-btn" data-aba="funcionarios" onclick="mudarAba('funcionarios', this)">Funcionários 👩‍🍳</button>
             <button class="tab-btn" data-aba="pdv" onclick="mudarAba('pdv', this)">PDV e Mesas</button>
             <button class="tab-btn" data-aba="pedidos_online" onclick="mudarAba('pedidos_online', this)">
                 Pedidos Online 🔔
                 <span id="badge-pedidos" class="badge">0</span>
             </button>
-            <button class="tab-btn" data-aba="configuracoes" onclick="mudarAba('configuracoes', this)">⚙️ Configurações</button>
         </div>
 
         <div id="secao-produtos" class="secao-painel">
@@ -301,6 +301,9 @@
         </div>
         <button type="submit" style="background: var(--pink); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">+ Adicionar</button>
     </form>
+    <div class="form-group" style="margin-top: 15px;">
+    <input type="text" id="busca-opcoes-enc" placeholder="🔍 Pesquisar opção de encomenda..." oninput="filtrarOpcoesEncomenda()" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+</div>
     <div id="lista-opcoes-encomenda" style="margin-top: 15px;">
         <!-- Lista gerada dinamicamente via JS -->
     </div>
@@ -333,6 +336,10 @@
         </div>
     </form>
     
+    <div class="form-group" style="margin-top: 15px;">
+    <input type="text" id="busca-complementos" placeholder="🔍 Pesquisar massa, recheio, opcional..." oninput="filtrarComplementos()" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+</div>
+
     <div id="lista-complementos-admin" style="margin-top: 15px;"></div>
 </div>
 
@@ -383,41 +390,58 @@
             </div>
         </div>
 
-        <!-- ABA ENCOMENDAS -->
+<!-- ABA ENCOMENDAS -->
         <div id="secao-encomendas" class="secao-painel" style="display: none;">
             <div class="card">
                 <h3 style="margin-top: 0; color: var(--pink);">Cadastrar Encomenda (Balcão)</h3>
                 <form id="form-encomenda-balcao" onsubmit="salvarEncomendaBalcao(event)">
+                    
                     <div style="display: flex; gap: 15px;">
                         <div class="form-group" style="flex: 2;"><label>Nome do Cliente:</label><input type="text" id="eb-nome" required placeholder="Nome completo"></div>
                         <div class="form-group" style="flex: 1;"><label>Telefone / WhatsApp:</label><input type="text" id="eb-tel" required placeholder="(11) 99999-9999"></div>
                     </div>
+                    
                     <div style="display: flex; gap: 15px;">
                         <div class="form-group" style="flex: 1;"><label>Data de Retirada / Entrega:</label><input type="date" id="eb-data" required></div>
                         <div class="form-group" style="flex: 1;"><label>Horário:</label><input type="time" id="eb-hora" required></div>
                     </div>
+                    
+                    <!-- Único Select de Opção de Encomenda (com o ID original eb-opcao) -->
                     <div class="form-group">
                         <label>Opção de Encomenda:</label>
-                        <select id="eb-opcao" required></select>
+                        <select id="eb-opcao" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;"></select>
                     </div>
+
+                    <!-- CAIXINHA DE COMPLEMENTOS E ADICIONAIS (BALCÃO) -->
+                    <div class="form-group">
+                        <label>Complementos e Adicionais:</label>
+                        <div id="container-complementos-balcao" style="background: #fdfdfd; padding: 12px; border: 1px solid #ddd; border-radius: 5px; max-height: 200px; overflow-y: auto;">
+                            Carregando complementos...
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>Detalhes (Sabor, Tema, Cores):</label>
                         <textarea id="eb-desc" rows="2" required placeholder="Ex: Massa branca, recheio de ninho..."></textarea>
                     </div>
+                    
                     <div class="form-group">
                         <label>Tipo de Atendimento:</label>
                         <select id="eb-tipo-entrega" onchange="verificarEntregaBalcao()">
                             <option value="Retirada na Loja" data-taxa="0">Retirada na Loja (Grátis)</option>
                         </select>
                     </div>
+                    
                     <div class="form-group" id="eb-campo-endereco" style="display: none;">
                         <label>Endereço Completo de Entrega:</label>
                         <input type="text" id="eb-endereco" placeholder="Rua, Número, Bairro, Referência">
                     </div>
+                    
                     <div class="form-group">
                         <label>Foto de Referência (Opcional):</label>
                         <input type="file" id="eb-foto" accept="image/*">
                     </div>
+                    
                     <div class="form-group">
                         <label>Forma de Pagamento:</label>
                         <select id="eb-pagamento">
@@ -427,6 +451,7 @@
                             <option value="Dinheiro">Dinheiro</option>
                         </select>
                     </div>
+                    
                     <button type="submit" class="btn-primary">Registrar Encomenda 🎂</button>
                 </form>
             </div>
@@ -436,8 +461,7 @@
                 <div id="lista-encomendas-admin"></div>
             </div>
         </div>
-
-        <div id="secao-clientes" class="secao-painel" style="display: none;">
+                <div id="secao-clientes" class="secao-painel" style="display: none;">
             <div class="card">
                 <h3 style="margin-top: 0; color: var(--pink);">Cadastrar Novo Cliente (Balcão/Mesa)</h3>
                 <p style="font-size: 0.85rem; color: #666; margin-top: -10px;">Clientes do Cardápio Digital são adicionados e contados sozinhos!</p>
@@ -788,38 +812,46 @@
 // ==========================================
 
 window.fazerLogin = async function(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     
-    var btn = event.target.querySelector('button') || event.target;
-    var textoOriginal = btn.innerText;
-    btn.innerText = "Aguarde...";
+    var btn = null;
+    if (event && event.target) {
+        btn = event.target.querySelector('button') || event.target;
+    }
     
-    var usuarioInput = document.getElementById('usuario-login').value.trim().toLowerCase();
-    var senhaInput = document.getElementById('senha-login').value.trim();
+    var textoOriginal = btn ? btn.innerText : "";
+    if (btn) btn.innerText = "Aguarde...";
+    
+    var inputUsuarioEl = document.getElementById('usuario-login');
+    var inputSenhaEl = document.getElementById('senha-login');
+    
+    var usuarioInput = inputUsuarioEl ? inputUsuarioEl.value.trim().toLowerCase() : "";
+    var senhaInput = inputSenhaEl ? inputSenhaEl.value.trim() : "";
 
     try {
-        // 1. TENTA O LOGIN BLINDADO (FIREBASE AUTH) SE FOR UM E-MAIL
+        // 1. TENTA O LOGIN COMO MESTRE (FIREBASE AUTH) SE FOR UM E-MAIL
         if (usuarioInput.includes('@')) {
             try {
-                // Chama o Firebase Auth oficial
                 await window.signInWithEmailAndPassword(window.auth, usuarioInput, senhaInput);
                 
-                // Sucesso! É a Tati.
+                // Sucesso absoluto pelo Firebase Auth!
                 window.usuarioLogado = { tipo: 'mestre', nome: 'Tati (Mestre)' };
-                document.getElementById('modal-login').style.display = 'none';
-                document.getElementById('usuario-logado-txt').innerText = "Logado como: Mestre (Tati)";
-                if (typeof window.aplicarPermissoes === 'function') window.aplicarPermissoes();
-                return; // Para a execução aqui, deu tudo certo
                 
+                var modalLogin = document.getElementById('modal-login');
+                if (modalLogin) modalLogin.style.display = 'none';
+                
+                var txtLogado = document.getElementById('usuario-logado-txt');
+                if (txtLogado) txtLogado.innerText = "Logado como: Mestre (Tati)";
+                
+                if (typeof window.aplicarPermissoes === 'function') window.aplicarPermissoes();
+                if (btn) btn.innerText = textoOriginal;
+                return; 
             } catch (authErro) {
-                console.error("Erro no Firebase Auth:", authErro);
-                alert("E-mail ou senha do administrador incorretos!");
-                btn.innerText = textoOriginal;
-                return; // Se tentou email e errou, não precisa testar funcionário
+                console.log("Firebase Auth recusou o e-mail/senha:", authErro.message);
             }
         }
 
-        // 2. SE NÃO FOR E-MAIL (É CPF OU NOME), TESTA OS FUNCIONÁRIOS
+        // 2. TESTA OS FUNCIONÁRIOS OU ACESSO GERAL
         var listaFuncionarios = [];
         if (typeof window.obterFuncionariosDaNuvem === 'function') {
             listaFuncionarios = await window.obterFuncionariosDaNuvem();
@@ -835,20 +867,26 @@ window.fazerLogin = async function(event) {
 
         if (func) {
             window.usuarioLogado = { tipo: 'funcionario', nome: func.nome, acessos: func.acessos || {} };
-            document.getElementById('modal-login').style.display = 'none';
-            document.getElementById('usuario-logado-txt').innerText = "Logado como: " + func.nome;
+            
+            var modalLogin = document.getElementById('modal-login');
+            if (modalLogin) modalLogin.style.display = 'none';
+            
+            var txtLogado = document.getElementById('usuario-logado-txt');
+            if (txtLogado) txtLogado.innerText = "Logado como: " + func.nome;
+            
             if (typeof window.aplicarPermissoes === 'function') window.aplicarPermissoes();
+            if (btn) btn.innerText = textoOriginal;
             return;
         }
 
-        // Se chegou até aqui, não achou nem mestre nem funcionário
-        alert("Usuário, CPF ou senha incorretos!");
-        btn.innerText = textoOriginal;
+        // Se o Firebase Auth falhou e também não é funcionário, exibe o erro
+        alert("E-mail, usuário ou senha incorretos!");
+        if (btn) btn.innerText = textoOriginal;
 
     } catch (erro) {
         console.error("Erro geral no login:", erro);
         alert("Erro ao validar login. Tente novamente.");
-        btn.innerText = textoOriginal;
+        if (btn) btn.innerText = textoOriginal;
     }
 };
 
@@ -905,6 +943,7 @@ window.aplicarPermissoes = function() {
 window.mudarAba = function(aba, btn) {
     var botoes = document.querySelectorAll('.tab-btn');
     for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
+    
     var secoes = document.querySelectorAll('.secao-painel');
     for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
 
@@ -922,6 +961,7 @@ window.mudarAba = function(aba, btn) {
         window.carregarEncomendasAdmin(); 
         window.carregarZonasBalcao(); 
         window.carregarOpcoesSelectBalcao(); 
+        window.carregarComplementosNoBalcao(); // <--- Puxa os complementos do balcão perfeitamente
     } 
     else if (aba === 'clientes') { 
         document.getElementById('secao-clientes').style.display = 'block'; 
@@ -939,13 +979,7 @@ window.mudarAba = function(aba, btn) {
         document.getElementById('secao-pedidos_online').style.display = 'block'; 
         window.renderizarPedidosDiarios(); 
     }
-else if (aba === 'configuracoes') { 
-        document.getElementById('secao-configuracoes').style.display = 'block'; 
-        if (typeof window.carregarSenhasAdmin === 'function') {
-            window.carregarSenhasAdmin();
-        }
-    }
-
+    
     if (btn) btn.classList.add('active');
 };
 
@@ -1296,14 +1330,29 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-        window.carregarOpcoesSelectBalcao = function() {
-            var select = document.getElementById('eb-opcao');
-            if(!select) return;
-            select.innerHTML = '';
-            opcoesEncomenda.forEach(function(o) {
-                select.innerHTML += '<option value="' + o.nome + '" data-preco="' + o.preco + '">' + o.nome + ' — R$ ' + Number(o.preco).toFixed(2) + '</option>';
-            });
-        };
+window.carregarOpcoesSelectBalcao = async function() {
+    try {
+        const selectEl = document.getElementById('eb-opcao');
+        if (!selectEl) return;
+
+        // Puxa as opções diretamente da coleção de opções de encomenda do Firebase
+        const snapshot = await window.getDocs(window.collection(window.db, "opcoes_encomenda"));
+        
+        let html = '<option value="">Selecione uma opção de encomenda...</option>';
+        
+        snapshot.forEach(doc => {
+            const item = doc.data();
+            const nome = item.nome || "Opção";
+            const preco = item.preco !== undefined ? item.preco : (item.valor || 0);
+            
+            html += `<option value="${nome}" data-preco="${preco}">${nome} — R$ ${Number(preco).toFixed(2)}</option>`;
+        });
+
+        selectEl.innerHTML = html || '<option value="">Nenhuma opção cadastrada</option>';
+    } catch (e) {
+        console.error("Erro ao carregar opções no balcão:", e);
+    }
+};
 
         // ZONAS E ENCOMENDAS DO BALCÃO
 // ZONAS E ENCOMENDAS DO BALCÃO (NUVEM)
@@ -2327,7 +2376,8 @@ window.mudarAba = function(aba, btn) {
         document.getElementById('secao-encomendas').style.display = 'block'; 
         window.carregarEncomendasAdmin(); 
         window.carregarZonasBalcao(); 
-        window.carregarOpcoesSelectBalcao(); 
+        window.carregarOpcoesSelectBalcao();
+        window.carregarComplementosNoBalcao();
     } 
     else if (aba === 'clientes') { 
         document.getElementById('secao-clientes').style.display = 'block'; 
@@ -2352,38 +2402,77 @@ window.mudarAba = function(aba, btn) {
 window.renderizarPedidosDiarios = async function() {
     var container = document.getElementById('lista-pedidos-diarios');
     if (!container) return;
-    container.innerHTML = '<p style="text-align: center; color: #666; padding: 10px;">Carregando pedidos da nuvem...</p>';
     
-    var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
+    container.innerHTML = '<p style="text-align: center; color: #666;">Carregando pedidos da nuvem...</p>';
+    
+    var pedidosNuvem = [];
+    try {
+        pedidosNuvem = await window.obterPedidosOnlineDaNuvem();
+    } catch (e) {
+        pedidosNuvem = [];
+    }
 
-    var filtroNome = (abaPedidosDiariosAtual === 'delivery') ? 'Entrega (Delivery)' : 'Retirada na Loja';
-    var pedidosFiltrados = vendasCardapio.filter(function(v) { return v.tipoEntrega === filtroNome && v.status !== 'concluido'; });
+    var pendentes = pedidosNuvem.filter(function(p) {
+        var eDelivery = p.tipoEntrega && p.tipoEntrega.includes('Entrega');
+        if (window.tipoPedidoAtual === 'delivery') {
+            return p.status === 'pendente' && eDelivery;
+        } else {
+            return p.status === 'pendente' && !eDelivery;
+        }
+    });
 
-    container.innerHTML = '';
-    if (pedidosFiltrados.length === 0) {
-        container.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">Nenhum pedido pendente nesta aba.</p>';
+    if (pendentes.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Nenhum pedido pendente nesta aba.</p>';
         return;
     }
 
-    pedidosFiltrados.slice().reverse().forEach(function(p) {
-        var itensStr = p.itens ? p.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
-        var infoEntrega = '';
-        if (p.tipoEntrega === 'Entrega (Delivery)') {
-            infoEntrega = `<p style="margin: 5px 0; font-size: 0.9rem;"><strong>📍 Endereço:</strong> ${p.endereco || 'Não informado'} <br><strong>🗺️ Zona:</strong> ${p.zona || 'N/A'}</p>`;
+    container.innerHTML = '';
+    pendentes.forEach(function(pedido) {
+        
+        // --- FORMATAÇÃO INTELIGENTE DOS ITENS E ENCOMENDAS ---
+        var itensHtml = pedido.itens ? pedido.itens.map(function(i) {
+            var linha = `• <strong>${i.quantidade}x ${i.name}</strong> (R$ ${(i.preco * i.quantidade).toFixed(2)})`;
+            
+            // Se for encomenda, expande os detalhes e complementos no painel
+            if (i.isEncomenda && i.detalhes) {
+                var d = i.detalhes;
+                if (d.dataRetirada && d.horaRetirada) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;🕒 <em>Retirada:</em> ${d.dataRetirada} às ${d.horaRetirada}`;
+                }
+                if (d.descricao) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;📝 <em>Detalhes:</em> ${d.descricao}`;
+                }
+                if (d.complementosLista && d.complementosLista.length > 0) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;✨ <strong>Complementos:</strong><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;` + d.complementosLista.join('<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+                } else if (d.complementos) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;✨ <em>Complementos:</em> ${d.complementos}`;
+                }
+            }
+            return linha;
+        }).join('<br><br>') : '';
+
+        var taxaHtml = pedido.taxaEntrega > 0 ? `<br><strong>Taxa de Entrega:</strong> R$ ${Number(pedido.taxaEntrega).toFixed(2)} (${pedido.zona || 'Zona'})<br><strong>Endereço:</strong> ${pedido.endereco}` : '<br><strong>Tipo:</strong> Retirada na Loja';
+
+        var infoTrocoHtml = "";
+        if (pedido.formaPagamento === 'Dinheiro' && pedido.trocoPara && pedido.trocoPara !== 'Não se aplica' && pedido.trocoPara !== 'Não informado') {
+            infoTrocoHtml = ` <span style="color: #d9534f; font-weight: bold;">(Troco para: R$ ${pedido.trocoPara})</span>`;
         }
 
-        container.innerHTML += '<div style="background: #fff8fa; border: 1px solid var(--pink); padding: 15px; border-radius: 8px; margin-bottom: 10px;">' +
-            '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
-                '<strong style="font-size: 1.1rem; color: var(--pink);">' + (p.cliente || 'Cliente') + '</strong>' +
-                '<span style="font-size: 0.8rem; color: #666;">' + (p.data || '') + '</span>' +
-            '</div>' +
-            infoEntrega +
-            '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Itens:</strong> ' + itensStr + '</p>' +
-            '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>Total:</strong> R$ ' + Number(p.total || 0).toFixed(2) + ' | <strong>Pagamento:</strong> ' + (p.formaPagamento || '') + '</p>' +
-            '<div style="text-align: right; margin-top: 10px;">' +
-                '<button onclick="marcarPedidoConcluido(\'' + p.firestoreId + '\')" style="background: #2e7d32; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Marcar como Preparado / Concluído</button>' +
-            '</div>' +
-        '</div>';
+        container.innerHTML += `
+            <div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa; padding: 15px; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <strong style="color: var(--pink); font-size: 1.05rem;">${pedido.cliente}</strong>
+                    <span style="font-size: 0.8rem; color: #666;">${pedido.data}</span>
+                </div>
+                <div style="margin: 8px 0; font-size: 0.9rem; line-height: 1.4;">
+                    <strong>Itens:</strong><br>${itensHtml}
+                </div>
+                <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Pagamento:</strong> ${pedido.formaPagamento}${infoTrocoHtml} — <strong>Total:</strong> R$ ${Number(pedido.total).toFixed(2)}${taxaHtml}</p>
+                <div style="margin-top: 12px; text-align: right;">
+                    <button onclick="concluirPedidoOnlineAdmin('${pedido.firestoreId}')" style="background: #2e7d32; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Concluir Pedido</button>
+                </div>
+            </div>
+        `;
     });
 };
 
@@ -2424,7 +2513,7 @@ window.mudarAbaPedidosDiarios = function(tipo, btn) {
     window.renderizarPedidosDiarios();
 };
 
-// Função para buscar e renderizar os pedidos online da nuvem
+// Função para buscar e renderizar os pedidos online da nuvem (Versão Definitiva com Troco)
 window.renderizarPedidosDiarios = async function() {
     var container = document.getElementById('lista-pedidos-diarios');
     if (!container) return;
@@ -2458,6 +2547,12 @@ window.renderizarPedidosDiarios = async function() {
         var itensHtml = pedido.itens ? pedido.itens.map(i => `${i.quantidade}x ${i.name} (R$ ${(i.preco * i.quantidade).toFixed(2)})`).join('<br>') : '';
         var taxaHtml = pedido.taxaEntrega > 0 ? `<br><strong>Taxa de Entrega:</strong> R$ ${Number(pedido.taxaEntrega).toFixed(2)} (${pedido.zona || 'Zona'})<br><strong>Endereço:</strong> ${pedido.endereco}` : '<br><strong>Tipo:</strong> Retirada na Loja';
 
+        // Lógica para destacar o Troco se for Dinheiro
+        var infoTrocoHtml = "";
+        if (pedido.formaPagamento === 'Dinheiro' && pedido.trocoPara && pedido.trocoPara !== 'Não se aplica' && pedido.trocoPara !== 'Não informado') {
+            infoTrocoHtml = ` <span style="color: #d9534f; font-weight: bold;">(Troco para: R$ ${pedido.trocoPara})</span>`;
+        }
+
         container.innerHTML += `
             <div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;">
                 <div style="display: flex; justify-content: space-between;">
@@ -2465,7 +2560,7 @@ window.renderizarPedidosDiarios = async function() {
                     <span style="font-size: 0.8rem; color: #666;">${pedido.data}</span>
                 </div>
                 <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Itens:</strong><br>${itensHtml}</p>
-                <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Pagamento:</strong> ${pedido.formaPagamento} — <strong>Total:</strong> R$ ${Number(pedido.total).toFixed(2)}${taxaHtml}</p>
+                <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Pagamento:</strong> ${pedido.formaPagamento}${infoTrocoHtml} — <strong>Total:</strong> R$ ${Number(pedido.total).toFixed(2)}${taxaHtml}</p>
                 <div style="margin-top: 12px; text-align: right;">
                     <button onclick="concluirPedidoOnlineAdmin('${pedido.firestoreId}')" style="background: #2e7d32; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Concluir Pedido</button>
                 </div>
@@ -2485,6 +2580,7 @@ window.concluirPedidoOnlineAdmin = async function(firestoreId) {
         }
     }
 };
+
 // ==========================================
 // MÓDULO DE EDIÇÃO (PRODUTOS, INSUMOS, CLIENTES, FUNCIONÁRIOS)
 // ==========================================
@@ -3173,6 +3269,106 @@ window.excluirComplemento = async function(id) {
         }
     }
 };
+
+window.toggleMenuAdmin = function() {
+    const menu = document.getElementById('admin-menu-dropdown');
+    if (menu) {
+        menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
+    }
+};
+
+// Fecha o menu se clicar fora dele
+window.addEventListener('click', function(e) {
+    const menu = document.getElementById('admin-menu-dropdown');
+    const botaoMenu = document.querySelector('button[onclick="toggleMenuAdmin()"]');
+    if (menu && menu.style.display === 'flex' && !menu.contains(e.target) && (!botaoMenu || !botaoMenu.contains(e.target))) {
+        menu.style.display = 'none';
+    }
+});
+
+// Filtro para Opções de Encomenda
+window.filtrarOpcoesEncomenda = function() {
+    const termo = document.getElementById('busca-opcoes-enc').value.toLowerCase();
+    const itens = document.querySelectorAll('#lista-opcoes-encomenda > div'); // Seleciona cada linha da lista
+
+    itens.forEach(item => {
+        const texto = item.textContent.toLowerCase();
+        item.style.display = texto.includes(termo) ? 'flex' : 'none';
+    });
+};
+
+// Filtro para Complementos
+window.filtrarComplementos = function() {
+    const termo = document.getElementById('busca-complementos').value.toLowerCase();
+    const itens = document.querySelectorAll('#lista-complementos-admin > div'); // Seleciona cada linha da lista
+
+    itens.forEach(item => {
+        const texto = item.textContent.toLowerCase();
+        item.style.display = texto.includes(termo) ? 'flex' : 'none';
+    });
+};
+
+window.carregarComplementosNoBalcao = async function() {
+    console.log("-> A função carregarComplementosNoBalcao foi acionada!");
+    
+    const container = document.getElementById('container-complementos-balcao');
+    if (!container) {
+        console.error("-> ERRO: A caixinha 'container-complementos-balcao' não foi encontrada na tela!");
+        return;
+    }
+
+    try {
+        const snapshot = await window.getDocs(window.collection(window.db, "complementos_encomenda"));
+        console.log("-> Total de complementos encontrados no Firebase:", snapshot.size);
+        
+        let html = '';
+        const tipos = ['massa', 'recheio', 'opcional', 'sabor'];
+        
+        tipos.forEach(tipo => {
+            const itens = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(item => item.tipo === tipo);
+
+            if (itens.length > 0) {
+                html += `
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: var(--chocolate, #5c3a21); font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #eee; display: block; padding-bottom: 3px; margin-bottom: 6px;">
+                            📌 ${tipo}
+                        </strong>`;
+                
+                itens.forEach(item => {
+                    html += `
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-bottom: 6px; cursor: pointer;">
+                            <input type="checkbox" class="check-complemento-balcao" data-preco="${item.preco}" value="${item.nome}" style="width: 16px; height: 16px; accent-color: var(--pink); cursor: pointer;">
+                            <span>${item.nome} ${item.preco > 0 ? '<span style="color: #666; font-size: 0.85rem;">(+ R$ ' + Number(item.preco).toFixed(2) + ')</span>' : ''}</span>
+                        </label>`;
+                });
+                html += `</div>`;
+            }
+        });
+        
+        container.innerHTML = html || '<p style="color: #666; font-size: 0.85rem; text-align: center;">Nenhum complemento cadastrado.</p>';
+    } catch (e) {
+        console.error("-> Erro ao buscar no Firebase:", e);
+        container.innerHTML = '<p style="color: red; font-size: 0.85rem;">Erro ao carregar complementos.</p>';
+    }
+};
+// Chama a função assim que abrir a aba de cadastrar encomenda balcão
+// (Se você usa a função de mudar de aba, adicione 'carregarComplementosNoBalcao()' dentro dela quando abrir essa seção)
+
+// Força o clique em qualquer botão de encomenda a abrir a aba certa e carregar os complementos
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[onclick*="encomendas"]').forEach(botao => {
+        botao.removeAttribute('onclick'); // Remove o antigo para não dar conflito
+        botao.addEventListener('click', () => {
+            window.mudarAba('encomendas');
+            if (typeof window.carregarComplementosNoBalcao === 'function') {
+                window.carregarComplementosNoBalcao();
+            }
+        });
+    });
+});
+
     </script>
     <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->
 <div style="text-align: center; padding: 20px 0; margin-top: 30px; border-top: 1px solid #eee; font-size: 0.85rem; color: #666;">

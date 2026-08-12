@@ -212,13 +212,18 @@
 
             <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #eee;">
                 <label><strong>Forma de Pagamento:</strong></label>
-                <select id="forma-pagamento" onchange="verificarPix()" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
-                    <option value="Pix">Pix (Chave da Tati)</option>
+<select id="forma-pagamento" onchange="verificarFormaPagamento()" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">                    <option value="Pix">Pix (Chave da Tati)</option>
                     <option value="Cartão de Crédito">Cartão de Crédito (Maquininha)</option>
                     <option value="Cartão de Débito">Cartão de Débito (Maquininha)</option>
                     <option value="Dinheiro">Dinheiro</option>
                 </select>
                 
+                <!-- CAMPO DO TROCO (Fica escondido até escolher Dinheiro) -->
+<div class="form-group" id="bloco-troco" style="display: none; margin-top: 10px;">
+    <label style="color: #333; font-weight: 500;">Troco para quanto? (Ex: 50.00):</label>
+    <input type="number" step="0.01" id="input-troco" placeholder="Ex: 50,00" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+</div>
+
 <div id="aviso-pix" style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-top: 8px; font-size: 0.9rem; color: #333;">
     <p style="margin: 0 0 6px 0;"><strong>Chave Pix:</strong> <span id="texto-chave-pix" style="font-family: monospace; background: #fff; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc;">7b4b3fba-d6c3-4d36-b7f4-cea0d1ac3356</span></p>
     <p style="margin: 0 0 4px 0;"><strong>Favorecido:</strong> Tatiana Lourenço dos Santos</p>
@@ -340,6 +345,11 @@ grid.innerHTML = `
                         </div>
                     </div>
 
+<div class="form-group">
+    <label>Foto de Referência (Opcional):</label>
+    <input type="file" id="foto-encomenda" accept="image/*" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 5px; background: #fff;">
+</div>
+
                     <div class="form-group"><label>Detalhes (Sabor, Tema, Cores):</label><textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea></div>                    <button type="submit" class="btn-primary">Adicionar Encomenda ao Carrinho 🛒</button>
                 </form>
             </div>
@@ -398,62 +408,96 @@ grid.innerHTML = `
         }
 
 function adicionarEncomendaCarrinho(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     
-    // Elementos Base
     const fileInput = document.getElementById('enc-foto');
-    const file = fileInput.files[0];
+    const file = (fileInput && fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
+    
     const selectOpcao = document.getElementById('enc-opcao');
+    if (!selectOpcao) {
+        alert('Selecione uma opção de encomenda.');
+        return;
+    }
     const selectedOption = selectOpcao.options[selectOpcao.selectedIndex];
-    const nomeOpcao = selectedOption.getAttribute('data-nome');
+    const nomeOpcao = selectedOption.getAttribute('data-nome') || selectedOption.text;
     const basePreco = parseFloat(selectOpcao.value) || 0;
 
-    // --- NOVA LÓGICA: SOMA DOS COMPLEMENTOS ---
-    let extras = [];
+    // --- SOMA DOS COMPLEMENTOS COM CATEGORIA ---
+let extrasFormatados = [];
+    let extrasTextoSimples = [];
     let totalExtras = 0;
     
-    // Coleta todos os checkboxes marcados com a classe 'check-complemento'
     document.querySelectorAll('.check-complemento:checked').forEach(cb => {
-        extras.push(cb.value); // O valor (nome) do item
-        totalExtras += parseFloat(cb.dataset.preco) || 0; // O preço extra
+        // Tenta pegar o data-tipo direto do checkbox, ou busca o título isolado do grupo dele
+        let tipo = cb.dataset.tipo || '';
+        
+        if (!tipo) {
+            let blocoPai = cb.closest('div');
+            if (blocoPai) {
+                // Pega apenas a primeira linha/título do bloco para não juntar tudo
+                let labelGrupo = blocoPai.querySelector('strong, span, h4, label');
+                tipo = labelGrupo ? labelGrupo.innerText.split('\n')[0].replace(/[📌\s]/g, '').trim() : 'Adicional';
+            } else {
+                tipo = 'Adicional';
+            }
+        }
+        
+        if (!tipo) tipo = 'Adicional';
+
+        const nome = cb.value;
+        const precoItem = parseFloat(cb.dataset.preco) || 0;
+
+        extrasFormatados.push(`• *${tipo.charAt(0).toUpperCase() + tipo.slice(1).toLowerCase()}:* ${nome}`);
+        extrasTextoSimples.push(`${tipo}: ${nome}`);
+        totalExtras += precoItem;
     });
 
     const precoFinal = basePreco + totalExtras;
-    // Junta a descrição original com os extras escolhidos
-    const descricaoCompleta = document.getElementById('enc-desc').value + 
-                              (extras.length > 0 ? "\nExtras: " + extras.join(", ") : "");
-    // ------------------------------------------
+    const descEl = document.getElementById('enc-desc');
+    const descricaoOriginal = descEl ? descEl.value : '';
 
-    document.getElementById('cart-nome').value = document.getElementById('enc-nome').value;
-    document.getElementById('cart-whatsapp').value = document.getElementById('enc-tel').value;
+    const nomeCliEl = document.getElementById('enc-nome');
+    const telCliEl = document.getElementById('enc-tel');
+    const dataRetEl = document.getElementById('enc-data');
+    const horaRetEl = document.getElementById('enc-hora');
+
+    if (nomeCliEl && document.getElementById('cart-nome')) {
+        document.getElementById('cart-nome').value = nomeCliEl.value;
+    }
+    if (telCliEl && document.getElementById('cart-whatsapp')) {
+        document.getElementById('cart-whatsapp').value = telCliEl.value;
+    }
 
     const processarEncomenda = (fotoBase64 = '') => {
         const dadosEncomenda = {
             tipo: "encomenda", 
-            nomeCliente: document.getElementById('enc-nome').value, 
-            telefone: document.getElementById('enc-tel').value, 
-            dataRetirada: document.getElementById('enc-data').value, 
-            horaRetirada: document.getElementById('enc-hora').value, 
+            nomeCliente: nomeCliEl ? nomeCliEl.value : '', 
+            telefone: telCliEl ? telCliEl.value : '', 
+            dataRetirada: dataRetEl ? dataRetEl.value : '', 
+            horaRetirada: horaRetEl ? horaRetEl.value : '', 
             opcaoEscolhida: nomeOpcao,
-            complementos: extras.join(", "), // Salva o nome dos extras
-            descricao: descricaoCompleta,
-            preco: precoFinal, // Preço final calculado
+            complementos: extrasTextoSimples.join(", "), 
+            complementosLista: extrasFormatados, // Guarda a lista formatada por tipo
+            descricao: descricaoOriginal,
+            preco: precoFinal, 
             foto: fotoBase64, 
             quantidade: 1
         };
 
-        // Adiciona ao carrinho com o nome atualizado e o preço calculado
         carrinho.push({ 
             id: 'enc_' + Date.now(), 
-            name: `🎂 Encomenda: ${nomeOpcao} ${extras.length > 0 ? '(' + extras.join(", ") + ')' : ''}`, 
+            name: `🎂 Encomenda: ${nomeOpcao}`, 
             preco: precoFinal, 
             quantidade: 1, 
             isEncomenda: true, 
             detalhes: dadosEncomenda 
         });
         
-        // DISPARA O TOAST DE SUCESSO
-        mostrarToast('🎂 Encomenda adicionada ao carrinho!');
+        if (typeof mostrarToast === 'function') {
+            mostrarToast('🎂 Encomenda adicionada ao carrinho!');
+        } else {
+            alert('🎂 Encomenda adicionada ao carrinho!');
+        }
     };
 
     if (file) {
@@ -570,117 +614,143 @@ function verificarPix() {
         function removerDoCarrinho(id) { carrinho = carrinho.filter(item => item.id != id); atualizarCarrinhoUI(); }
 
 async function finalizarPedidoWhatsApp() {
-            if (carrinho.length === 0) { alert('Seu carrinho está vazio!'); return; }
+    if (carrinho.length === 0) { alert('Seu carrinho está vazio!'); return; }
 
-            const cliNome = document.getElementById('cart-nome').value.trim();
-            const cliCpf = document.getElementById('cart-cpf').value.replace(/\D/g, '');
-            const cliZap = document.getElementById('cart-whatsapp').value.replace(/\D/g, '');
+    const cliNome = document.getElementById('cart-nome').value.trim();
+    const cliCpf = document.getElementById('cart-cpf').value.replace(/\D/g, '');
+    const cliZap = document.getElementById('cart-whatsapp').value.replace(/\D/g, '');
 
-            if (!cliNome || cliCpf.length !== 11 || cliZap.length < 10) {
-                alert('Por favor, preencha corretamente Nome, CPF e WhatsApp para o Clube de Fidelidade antes de finalizar o pedido!');
-                return;
-            }
+    if (!cliNome || cliCpf.length !== 11 || cliZap.length < 10) {
+        alert('Por favor, preencha corretamente Nome, CPF e WhatsApp para o Clube de Fidelidade antes de finalizar o pedido!');
+        return;
+    }
 
-            const selectEntrega = document.getElementById('tipo-entrega');
-            const opcaoSelecionada = selectEntrega.options[selectEntrega.selectedIndex];
-            const nomeEntrega = selectEntrega.value;
-            const taxaEntrega = parseFloat(opcaoSelecionada.getAttribute('data-taxa')) || 0;
-            const enderecoCliente = document.getElementById('cart-endereco').value.trim();
+    const selectEntrega = document.getElementById('tipo-entrega');
+    const opcaoSelecionada = selectEntrega.options[selectEntrega.selectedIndex];
+    const nomeEntrega = selectEntrega.value;
+    const taxaEntrega = parseFloat(opcaoSelecionada.getAttribute('data-taxa')) || 0;
+    const enderecoCliente = document.getElementById('cart-endereco').value.trim();
 
-            if (nomeEntrega.includes('Entrega') && !enderecoCliente) {
-                alert('Por favor, informe seu endereço completo para podermos realizar a entrega!');
-                return;
-            }
+    if (nomeEntrega.includes('Entrega') && !enderecoCliente) {
+        alert('Por favor, informe seu endereço completo para podermos realizar a entrega!');
+        return;
+    }
 
-            // Salva ou atualiza o cliente na nuvem
-            let novoCliente = {
-                id: 'cli_' + Date.now(),
-                nome: cliNome,
-                cpf: cliCpf,
-                whatsapp: cliZap,
-                pedidos: 1,
-                endereco: nomeEntrega.includes('Entrega') ? enderecoCliente : 'Não informado',
-                observacoes: 'Cadastrado via Cardápio Digital',
-                criadoEm: new Date().toLocaleString()
-            };
-            await window.salvarClienteNaNuvem(novoCliente);
+    // Salva ou atualiza o cliente na nuvem
+    let novoCliente = {
+        id: 'cli_' + Date.now(),
+        nome: cliNome,
+        cpf: cliCpf,
+        whatsapp: cliZap,
+        pedidos: 1,
+        endereco: nomeEntrega.includes('Entrega') ? enderecoCliente : 'Não informado',
+        observacoes: 'Cadastrado via Cardápio Digital',
+        criadoEm: new Date().toLocaleString()
+    };
+    await window.salvarClienteNaNuvem(novoCliente);
 
-            const formaPagamento = document.getElementById('forma-pagamento').value;
-            let mensagem = `Olá! Sou *${cliNome}* e gostaria de fazer o seguinte pedido:%0A%0A`;
-            let subtotalProdutos = 0;
-            
-            for (let item of carrinho) {
-                let sub = item.preco * item.quantidade;
-                subtotalProdutos += sub;
-                
-                if (item.isEncomenda && item.detalhes) {
-                    let d = item.detalhes;
-                    let tipoEncFinal = taxaEntrega > 0 ? ('Entrega: ' + opcaoSelecionada.text.split(' - ')[0].replace('Entrega: ', '')) : 'Retirada na Loja';
-                    let zonaEncFinal = taxaEntrega > 0 ? opcaoSelecionada.text.split(' - ')[0] : 'N/A';
+    const formaPagamento = document.getElementById('forma-pagamento').value;
+    let infoTroco = "";
+    let valorTrocoDigitado = "";
 
-                    mensagem += `🎂 *ENCOMENDA PERSONALIZADA*%0A• *Opção:* ${d.opcaoEscolhida}%0A• *Retirada:* ${d.dataRetirada} às ${d.horaRetirada}%0A• *Detalhes:* ${d.descricao}%0A• *Atendimento:* ${tipoEncFinal}%0A• *Valor:* R$ ${sub.toFixed(2)}%0A%0A`;
-                    
-                    let novaEnc = { 
-                        id: Date.now(), 
-                        ...item.detalhes, 
-                        nomeCliente: cliNome, 
-                        telefone: cliZap, 
-                        formaPagamento: formaPagamento, 
-                        statusPagamento: formaPagamento === 'Pix' ? 'Pago (Pix)' : 'A Pagar', 
-                        total: sub + taxaEntrega, 
-                        taxaEntrega: taxaEntrega,
-                        tipoEntrega: tipoEncFinal,
-                        zona: zonaEncFinal,
-                        endereco: enderecoCliente,
-                        dataPedido: new Date().toLocaleString() 
-                    };
-                    // Salva encomenda na nuvem
-                    await window.salvarEncomendaNaNuvem(novaEnc);
-                } else {
-                    mensagem += `- ${item.quantidade}x ${item.name} (R$ ${sub.toFixed(2)})%0A`;
-                }
-            }
-
-            let totalGeral = subtotalProdutos + taxaEntrega;
-            let tipoAdminFiltro = taxaEntrega > 0 ? 'Entrega (Delivery)' : 'Retirada na Loja';
-            let nomeZonaCard = opcaoSelecionada.text.split(' - ')[0]; 
-
-            let novoPedidoOnline = {
-                id: Date.now(), 
-                data: new Date().toLocaleString(), 
-                cliente: cliNome + ' (CPF: ' + cliCpf + ')', 
-                itens: carrinho.map(item => ({ name: item.name, quantidade: item.quantidade, preco: item.preco })), 
-                taxaEntrega: taxaEntrega, 
-                total: totalGeral, 
-                tipoEntrega: tipoAdminFiltro, 
-                formaPagamento: formaPagamento, 
-                status: 'pendente', 
-                endereco: enderecoCliente, 
-                zona: nomeZonaCard
-            };
-            
-            // Salva o pedido online direto no Firestore (vai cair na aba de Pedidos Online do Admin!)
-            await window.salvarPedidoOnlineNaNuvem(novoPedidoOnline);
-            
-            mensagem += `----------------------------%0A`;
-            if (taxaEntrega > 0) {
-                mensagem += `🛵 *Taxa de Entrega:* R$ ${taxaEntrega.toFixed(2)}%0A`;
-                mensagem += `📍 *Endereço:* ${enderecoCliente}%0A`;
-                mensagem += `🗺️ *Zona:* ${nomeZonaCard}%0A`;
-            } else {
-                mensagem += `*Tipo de Atendimento:* Retirada na Loja%0A`;
-            }
-            mensagem += `*Forma de Pagamento:* ${formaPagamento}`;
-            if (formaPagamento === 'Pix') mensagem += ` (Comprovante em anexo)`;
-            mensagem += `%0A%0A*Total Geral: R$ ${totalGeral.toFixed(2)}*`;
-            
-            const numeroWhatsApp = "5511943692682"; 
-            window.open(`https://wa.me/${numeroWhatsApp}?text=${mensagem}`, '_blank');
-            
-            carrinho = [];
-            atualizarCarrinhoUI();
-            fecharCarrinho();
+    if (formaPagamento === 'Dinheiro') {
+        valorTrocoDigitado = document.getElementById('input-troco').value.trim();
+        if (valorTrocoDigitado) {
+            infoTroco = ` (Troco para: R$ ${valorTrocoDigitado})`;
+        } else {
+            infoTroco = ` (Sem troco / Não especificado)`;
         }
+    }
+
+    let mensagem = `Olá! Sou *${cliNome}* e gostaria de fazer o seguinte pedido:%0A%0A`;
+    let subtotalProdutos = 0;
+    
+    for (let item of carrinho) {
+        let sub = item.preco * item.quantidade;
+        subtotalProdutos += sub;
+        
+        if (item.isEncomenda && item.detalhes) {
+            let d = item.detalhes;
+            let tipoEncFinal = taxaEntrega > 0 ? ('Entrega: ' + opcaoSelecionada.text.split(' - ')[0].replace('Entrega: ', '')) : 'Retirada na Loja';
+            let zonaEncFinal = taxaEntrega > 0 ? opcaoSelecionada.text.split(' - ')[0] : 'N/A';
+
+            let blocoComplementos = "";
+            if (d.complementosLista && d.complementosLista.length > 0) {
+                blocoComplementos = `%0A• *Complementos e Adicionais:*%0A` + d.complementosLista.join('%0A');
+            } else if (d.complementos) {
+                blocoComplementos = `%0A• *Complementos:* ${d.complementos}`;
+            }
+
+            mensagem += `🎂 *ENCOMENDA PERSONALIZADA*%0A• *Opção:* ${d.opcaoEscolhida}%0A• *Retirada:* ${d.dataRetirada} às ${d.horaRetirada}%0A• *Detalhes:* ${d.descricao || 'Nenhum'}${blocoComplementos}%0A• *Atendimento:* ${tipoEncFinal}%0A• *Valor:* R$ ${sub.toFixed(2)}%0A%0A`;
+            
+            let novaEnc = { 
+                id: Date.now(), 
+                ...item.detalhes, 
+                nomeCliente: cliNome, 
+                telefone: cliZap, 
+                formaPagamento: formaPagamento, 
+                statusPagamento: formaPagamento === 'Pix' ? 'Pago (Pix)' : 'A Pagar', 
+                total: sub + taxaEntrega, 
+                taxaEntrega: taxaEntrega,
+                tipoEntrega: tipoEncFinal,
+                zona: zonaEncFinal,
+                endereco: enderecoCliente,
+                dataPedido: new Date().toLocaleString() 
+            };
+            await window.salvarEncomendaNaNuvem(novaEnc);
+        } else {
+            mensagem += `- ${item.quantidade}x ${item.name} (R$ ${sub.toFixed(2)})%0A`;
+        }
+    }
+
+    let totalGeral = subtotalProdutos + taxaEntrega;
+    let tipoAdminFiltro = taxaEntrega > 0 ? 'Entrega (Delivery)' : 'Retirada na Loja';
+    let nomeZonaCard = opcaoSelecionada.text.split(' - ')[0]; 
+
+    let novoPedidoOnline = {
+        id: Date.now(), 
+        data: new Date().toLocaleString(), 
+        cliente: cliNome + ' (CPF: ' + cliCpf + ')', 
+        itens: carrinho.map(item => ({ 
+            name: item.name, 
+            quantidade: item.quantidade, 
+            preco: item.preco,
+            isEncomenda: item.isEncomenda || false,
+            detalhes: item.detalhes || null
+        })), 
+        taxaEntrega: taxaEntrega, 
+        total: totalGeral, 
+        tipoEntrega: tipoAdminFiltro, 
+        formaPagamento: formaPagamento, 
+        trocoPara: formaPagamento === 'Dinheiro' ? (valorTrocoDigitado || 'Não informado') : 'Não se aplica',
+        status: 'pendente', 
+        endereco: enderecoCliente, 
+        zona: nomeZonaCard
+    };
+    
+    await window.salvarPedidoOnlineNaNuvem(novoPedidoOnline);
+    
+    mensagem += `----------------------------%0A`;
+    if (taxaEntrega > 0) {
+        mensagem += `🛵 *Taxa de Entrega:* R$ ${taxaEntrega.toFixed(2)}%0A`;
+        mensagem += `📍 *Endereço:* ${enderecoCliente}%0A`;
+        mensagem += `🗺️ *Zona:* ${nomeZonaCard}%0A`;
+    } else {
+        mensagem += `*Tipo de Atendimento:* Retirada na Loja%0A`;
+    }
+    
+    mensagem += `*Forma de Pagamento:* ${formaPagamento}${infoTroco}`;
+    if (formaPagamento === 'Pix') mensagem += ` (Comprovante em anexo)`;
+    
+    mensagem += `%0A%0A*Total Geral: R$ ${totalGeral.toFixed(2)}*`;
+    
+    const numeroWhatsApp = "5511943692682"; 
+    window.open(`https://wa.me/${numeroWhatsApp}?text=${mensagem}`, '_blank');
+    
+    carrinho = [];
+    atualizarCarrinhoUI();
+    fecharCarrinho();
+}
 
 window.onload = async function() {
             await carregarProdutos();
@@ -754,6 +824,23 @@ async function carregarComplementosNoCardapio() {
         console.error("Erro ao carregar complementos:", e);
     }
 }
+
+window.verificarFormaPagamento = function() {
+    const forma = document.getElementById('forma-pagamento').value;
+    const blocoTroco = document.getElementById('bloco-troco');
+    const avisoPix = document.getElementById('aviso-pix');
+
+    // Controla o campo de Troco (só aparece se for Dinheiro)
+    if (blocoTroco) {
+        blocoTroco.style.display = (forma === 'Dinheiro') ? 'block' : 'none';
+        if (forma !== 'Dinheiro') document.getElementById('input-troco').value = '';
+    }
+
+    // Controla o aviso do Pix (só aparece se for Pix)
+    if (avisoPix) {
+        avisoPix.style.display = (forma === 'Pix') ? 'block' : 'none';
+    }
+};
 
         </script>
 <!-- Footer / Assinatura -->
