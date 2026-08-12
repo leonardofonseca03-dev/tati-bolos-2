@@ -161,10 +161,6 @@
         <div class="chip" onclick="filtrarCategoria('encomenda', this)" style="background: var(--light-pink); color: var(--chocolate);">🎂 Faça sua Encomenda</div>
     </div>
 
-<div id="container-complementos" style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin: 10px 0;">
-    <!-- Os complementos vão carregar aqui automaticamente -->
-</div>
-
     <main>
         <h2 class="section-title" id="titulo-categoria">Nosso Cardápio</h2>
         <div class="product-grid" id="grid-produtos"></div>
@@ -344,8 +340,7 @@ grid.innerHTML = `
                         </div>
                     </div>
 
-                    <div class="form-group"><label>Detalhes (Sabor, Tema, Cores):</label><textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea></div>                    <div class="form-group"><label>Foto de Referência (Opcional):</label><input type="file" id="enc-foto" accept="image/*"></div>
-                    <button type="submit" class="btn-primary">Adicionar Encomenda ao Carrinho 🛒</button>
+                    <div class="form-group"><label>Detalhes (Sabor, Tema, Cores):</label><textarea id="enc-desc" rows="3" required placeholder="Ex: Massa branca, recheio de ninho com morango, tema infantil..."></textarea></div>                    <button type="submit" class="btn-primary">Adicionar Encomenda ao Carrinho 🛒</button>
                 </form>
             </div>
         `;
@@ -728,8 +723,6 @@ async function carregarComplementosNoCardapio() {
         if (!container) return;
 
         let html = '';
-        
-        // Agrupa por tipo
         const tipos = ['massa', 'recheio', 'opcional', 'sabor'];
         
         tipos.forEach(tipo => {
@@ -738,18 +731,25 @@ async function carregarComplementosNoCardapio() {
                 .filter(item => item.tipo === tipo);
 
             if (itens.length > 0) {
-                html += `<div style="margin-bottom: 10px;"><strong>${tipo.charAt(0).toUpperCase() + tipo.slice(1)}:</strong><br>`;
+                // Título da categoria bonitinho
+                html += `
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: var(--chocolate, #5c3a21); font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #eee; display: block; padding-bottom: 3px; margin-bottom: 6px;">
+                            📌 ${tipo}
+                        </strong>`;
+                
                 itens.forEach(item => {
                     html += `
-                        <label style="display: block; font-size: 0.9rem;">
-                            <input type="checkbox" class="check-complemento" data-preco="${item.preco}" value="${item.nome}">
-                            ${item.nome} ${item.preco > 0 ? '(+ R$ ' + Number(item.preco).toFixed(2) + ')' : ''}
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-bottom: 6px; cursor: pointer;">
+                            <input type="checkbox" class="check-complemento" data-preco="${item.preco}" value="${item.nome}" style="width: 16px; height: 16px; accent-color: var(--pink); cursor: pointer;">
+                            <span>${item.nome} ${item.preco > 0 ? '<span style="color: #666; font-size: 0.85rem;">(+ R$ ' + Number(item.preco).toFixed(2) + ')</span>' : ''}</span>
                         </label>`;
                 });
                 html += `</div>`;
             }
         });
-        container.innerHTML = html;
+        
+        container.innerHTML = html || '<p style="color: #666; font-size: 0.85rem; text-align: center;">Nenhum complemento cadastrado.</p>';
     } catch (e) {
         console.error("Erro ao carregar complementos:", e);
     }
