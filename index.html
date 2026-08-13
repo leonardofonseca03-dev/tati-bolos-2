@@ -225,9 +225,9 @@
 </div>
 
 <div id="aviso-pix" style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-top: 8px; font-size: 0.9rem; color: #333;">
-    <p style="margin: 0 0 6px 0;"><strong>Chave Pix:</strong> <span id="texto-chave-pix" style="font-family: monospace; background: #fff; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc;">7b4b3fba-d6c3-4d36-b7f4-cea0d1ac3356</span></p>
-    <p style="margin: 0 0 4px 0;"><strong>Favorecido:</strong> Tatiana Lourenço dos Santos</p>
-    <p style="margin: 0 0 8px 0;"><strong>Banco:</strong> Cloudwalk (InfinityPay)</p>
+    <p style="margin: 0 0 6px 0;"><strong>Chave Pix:</strong> <span id="texto-chave-pix" style="font-family: monospace; background: #fff; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc;">Carregando...</span></p>
+    <p style="margin: 0 0 4px 0;"><strong>Favorecido:</strong> <span id="pix-titular">Tatiana Lourenço dos Santos</span></p>
+    <p style="margin: 0 0 8px 0;"><strong>Banco:</strong> <span id="pix-banco">Cloudwalk (InfinityPay)</span></p>
     <button type="button" onclick="copiarChavePix()" style="background: #25d366; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">
         📋 Copiar Chave Pix
     </button>
@@ -276,6 +276,39 @@ window.toggleHorarioModal = toggleHorarioModal;
 <script type="module" src="config.js"></script>    
 <script>
         let carrinho = [];
+
+        // 🔐 FUNÇÕES DE SEGURANÇA (LGPD + Chave Pix dinâmica)
+        window._chavePixAtual = "7b4b3fba-d6c3-4d36-b7f4-cea0d1ac3356"; // fallback
+        
+        async function hashCpf(cpfLimpo) {
+            if (!cpfLimpo) return '';
+            try {
+                var msg = new TextEncoder().encode('tati_salt_' + cpfLimpo.trim());
+                var buf = await crypto.subtle.digest('SHA-256', msg);
+                return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+            } catch(e) { return cpfLimpo; }
+        }
+        
+        async function carregarChavePixDoFirebase() {
+            try {
+                var snap = await window.getDocs(window.collection(window.db, "configuracoes"));
+                snap.forEach(d => {
+                    var dados = d.data();
+                    if (dados.chavePix) window._chavePixAtual = dados.chavePix;
+                    if (dados.nomeTitularPix) {
+                        var el = document.getElementById('pix-titular');
+                        if (el) el.innerText = dados.nomeTitularPix;
+                    }
+                    if (dados.bancoPix) {
+                        var el2 = document.getElementById('pix-banco');
+                        if (el2) el2.innerText = dados.bancoPix;
+                    }
+                });
+            } catch(e) { console.warn("Usando chave Pix padrão:", e.message); }
+            
+            var elChave = document.getElementById('texto-chave-pix');
+            if (elChave) elChave.innerText = window._chavePixAtual;
+        }
 
         function mostrarToast(mensagem) {
             var toast = document.getElementById('toast-notificacao');
@@ -636,11 +669,17 @@ async function finalizarPedidoWhatsApp() {
         return;
     }
 
-    // Salva ou atualiza o cliente na nuvem
+    // Salva ou atualiza o cliente na nuvem (COM LGPD: CPF com HASH, não em texto puro)
+    const cpfHash = await hashCpf(cliCpf);
+    const cpfMascarado = cliCpf.length === 11 
+        ? cliCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '***.$2.$3-**')
+        : '***.***.***-**';
+    
     let novoCliente = {
         id: 'cli_' + Date.now(),
         nome: cliNome,
-        cpf: cliCpf,
+        cpf: cpfMascarado,       // Apenas mascarado para visualização
+        cpf_hash: cpfHash,       // Hash SHA-256 (para clube de fidelidade / busca)
         whatsapp: cliZap,
         pedidos: 1,
         endereco: nomeEntrega.includes('Entrega') ? enderecoCliente : 'Não informado',
@@ -710,8 +749,9 @@ async function finalizarPedidoWhatsApp() {
     let novoPedidoOnline = {
         id: Date.now(), 
         data: new Date().toLocaleString(), 
-        cliente: cliNome + ' (CPF: ' + cliCpf + ')', 
+        cliente: cliNome + ' (CPF: ' + cpfMascarado + ')', 
         telefone: cliZap,
+        cpf_hash: cpfHash,
         itens: carrinho.map(item => ({ 
             name: item.name, 
             quantidade: item.quantidade, 
@@ -745,6 +785,9 @@ async function finalizarPedidoWhatsApp() {
     
     mensagem += `%0A%0A*Total Geral: R$ ${totalGeral.toFixed(2)}*`;
     
+    // --- MENSAGEM DE TEMPO DE PREPARO ---
+    mensagem += `%0A%0A⏱️ *Tempo de Preparo:*%0AEntre 30 a 40 minutos (sem contar o tempo de espera do motoboy e seu deslocamento até o endereço).%0A⚠️ Não vale para o tempo de preparo dos itens de encomenda — consulte-nos para saber esse dado.`;
+    
     const numeroWhatsApp = "5511943692682"; 
     window.open(`https://wa.me/${numeroWhatsApp}?text=${mensagem}`, '_blank');
     
@@ -756,11 +799,12 @@ async function finalizarPedidoWhatsApp() {
 window.onload = async function() {
             await carregarProdutos();
             await carregarZonasCarrinho();
+            await carregarChavePixDoFirebase();
             verificarPix();
         };
 
 function copiarChavePix() {
-    const chave = "7b4b3fba-d6c3-4d36-b7f4-cea0d1ac3356";
+    const chave = window._chavePixAtual || "7b4b3fba-d6c3-4d36-b7f4-cea0d1ac3356";
     navigator.clipboard.writeText(chave).then(() => {
         alert("Chave Pix copiada com sucesso! Cole no aplicativo do seu banco.");
     }).catch(err => {

@@ -220,19 +220,18 @@
 
     <!-- Menu Suspenso (Gaveta) -->
     <div id="admin-menu-dropdown" style="display: none; position: absolute; top: 45px; left: 0; background: white; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 10px; padding: 12px; z-index: 1000; min-width: 220px; flex-direction: column; gap: 8px;">
-        <button class="btn-aba" onclick="mudarAba('produtos'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Produtos & Encomendas</button>
-        <button class="btn-aba" onclick="mudarAba('insumos'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Insumos</button>
-        <button class="btn-aba" onclick="mudarAba('encomendas'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Encomendas</button>
-        <button class="btn-aba" onclick="mudarAba('clientes'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Clientes 🎁</button>
-        <button class="btn-aba" onclick="mudarAba('funcionarios'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Funcionários 👨‍🍳</button>
-        <button class="btn-aba" onclick="mudarAba('pdv'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">PDV e Mesas</button>
-        <button class="btn-aba" onclick="mudarAba('pedidos'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Pedidos Online 🔔</button>
-<button class="tab-btn" onclick="carregarRelatorioVendas()">📊 Relatório de Vendas</button>
-<button class="tab-btn" onclick="carregarItensMaisVendidos()">🔥 Itens Mais Vendidos</button>
-<button class="tab-btn" onclick="carregarZonasFrete()">🚚 Zonas de Frete</button>        <button class="btn-aba" onclick="mudarAba('configuracoes'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">⚙️ Configurações</button>
-        <button class="tab-btn" onclick="fazerLogout()" style="color: #d9534f; font-weight: bold; border-top: 1px solid #eee; margin-top: 5px; padding-top: 10px;">
-    🚪 Sair (Logout)
-</button>
+        <button class="tab-btn" onclick="mudarAba('produtos'); toggleMenuAdmin();">📦 Produtos & Encomendas</button>
+        <button class="tab-btn" onclick="mudarAba('insumos'); toggleMenuAdmin();">🧪 Insumos</button>
+        <button class="tab-btn" onclick="mudarAba('encomendas'); toggleMenuAdmin();">🎂 Encomendas</button>
+        <button class="tab-btn" onclick="mudarAba('clientes'); toggleMenuAdmin();">🎁 Clientes</button>
+        <button class="tab-btn" onclick="mudarAba('funcionarios'); toggleMenuAdmin();">👨‍🍳 Funcionários</button>
+        <button class="tab-btn" onclick="mudarAba('pdv'); toggleMenuAdmin();">💳 PDV e Mesas</button>
+        <button class="tab-btn" onclick="mudarAba('pedidos_online'); toggleMenuAdmin();">🔔 Pedidos Online</button>
+        <button class="tab-btn" onclick="carregarRelatorioVendas()">📊 Relatório de Vendas</button>
+        <button class="tab-btn" onclick="carregarItensMaisVendidos()">🔥 Itens Mais Vendidos</button>
+        <button class="tab-btn" onclick="carregarZonasFrete()">🚚 Zonas de Frete</button>
+        <button class="tab-btn" onclick="mudarAba('configuracoes'); toggleMenuAdmin();">⚙️ Configurações</button>
+        <button class="tab-btn" onclick="fazerLogout()" style="color: #d9534f; border-color: #d9534f;">🚪 Sair (Logout)</button>
     </div>
 </div>
 
@@ -247,12 +246,12 @@
     <div id="menu-dropdown" style="display: none; position: absolute; left: 0; top: 65px; background: white; box-shadow: 0px 8px 20px rgba(0,0,0,0.15); border-radius: 10px; width: 260px; z-index: 9999; padding: 12px; border: 1px solid #eee;">
         <div style="font-size: 0.75rem; color: #999; text-transform: uppercase; font-weight: bold; margin-bottom: 8px; padding-left: 5px;">Atalhos do Sistema</div>
         <div style="display: flex; flex-direction: column; gap: 6px;">
-            <button onclick="abrirCalendarioEncomendas(); toggleMenu();" style="background: #f8f9fa; color: #333; border: none; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">📅 Calendário de Encomendas</button>
-            <button id="btn-zonas" onclick="abrirZonasFrete(); toggleMenu();" style="background: #f8f9fa; color: #333; border: none; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">🛵 Zonas de Frete</button>
-            <button id="btn-relatorio" onclick="abrirRelatorioVendas(); toggleMenu();" style="background: #f8f9fa; color: #333; border: none; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">📊 Relatório de Vendas</button>
-            <button onclick="abrirModalItensMaisVendidos(); toggleMenu();" style="background: #f8f9fa; color: #333; border: none; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">🏆 Itens Mais Vendidos</button>
+            <button class="tab-btn" onclick="abrirCalendarioEncomendas(); toggleMenu();">📅 Calendário de Encomendas</button>
+            <button class="tab-btn" id="btn-zonas" onclick="abrirZonasFrete(); toggleMenu();">🛵 Zonas de Frete</button>
+            <button class="tab-btn" id="btn-relatorio" onclick="abrirRelatorioVendas(); toggleMenu();">📊 Relatório de Vendas</button>
+            <button class="tab-btn" onclick="abrirModalItensMaisVendidos(); toggleMenu();">🏆 Itens Mais Vendidos</button>
             <hr style="border: none; border-top: 1px solid #eee; margin: 4px 0;">
-            <button onclick="fazerLogout()" style="background: #ffebee; color: #c62828; border: none; padding: 10px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: bold;">Sair 🚪</button>
+            <button class="tab-btn" onclick="fazerLogout()" style="color: #d9534f; border-color: #d9534f;">🚪 Sair (Logout)</button>
         </div>
     </div>
 </header>
@@ -582,7 +581,38 @@
     </div>
     
     <button onclick="atualizarAcessoMestre()" class="btn-primary" style="padding: 10px 20px;">Atualizar Acesso Mestre 💾</button>
-</div>                <!-- Card de Backup -->
+</div><!-- CARD DE DADOS DA LOJA (CHAVE PIX) -->
+<div style="background: #fff8fa; border: 1px dashed var(--pink); padding: 20px; border-radius: 8px; margin-top: 15px;">
+    <h3 style="color: var(--pink); margin-top: 0;">💳 Dados de Pagamento (Chave Pix)</h3>
+    <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+        Altere aqui sua chave Pix — ela atualiza automaticamente no cardápio online sem precisar mexer em código!
+    </p>
+    
+    <div class="form-group">
+        <label>Chave Pix (atual):</label>
+        <input type="text" id="pix-chave" placeholder="Ex: email, cpf, telefone ou chave aleatória" 
+               style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: monospace;">
+    </div>
+    
+    <div style="display: flex; gap: 15px;">
+        <div class="form-group" style="flex: 1;">
+            <label>Nome do Titular:</label>
+            <input type="text" id="pix-titular" placeholder="Ex: Tatiana Lourenço dos Santos" 
+                   style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Banco / Instituição:</label>
+            <input type="text" id="pix-banco" placeholder="Ex: Cloudwalk (InfinityPay)" 
+                   style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+        </div>
+    </div>
+    
+    <button onclick="salvarDadosPix()" class="btn-primary" style="padding: 10px 25px; width: auto;">
+        💾 Salvar Dados Pix
+    </button>
+</div>
+
+                <!-- Card de Backup -->
                 <div style="background: white; border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <h3 style="color: var(--pink); margin-top: 0; margin-bottom: 10px;">💾 Backup do Banco de Dados (Firestore)</h3>
                     <p style="font-size: 0.9rem; color: #555; margin-bottom: 15px;">
@@ -3437,6 +3467,177 @@ window.renderizarConteudoRelatorio = async function() {
     }
 
     totalGeralEl.innerText = somaTotal.toFixed(2);
+};
+
+window.limparHistoricoRelatorio = async function() {
+    if (!confirm("⚠️ ATENÇÃO: Tem certeza que deseja apagar o histórico de vendas desta aba? Essa ação não pode ser desfeita!")) {
+        return;
+    }
+
+    var btn = document.querySelector('button[onclick="limparHistoricoRelatorio()"]');
+    var textoOriginal = btn ? btn.innerHTML : '🗑️ Limpar Histórico';
+    if (btn) btn.innerHTML = '⏳ Apagando...';
+
+    try {
+        if (window.abaRelatorioAtual === 'mesas') {
+            // 1. Limpa coleção de vendas das mesas
+            const snapMesas = await window.getDocs(window.collection(window.db, "vendas_mesas"));
+            for (let docSnap of snapMesas.docs) {
+                await window.deleteDoc(window.doc(window.db, "vendas_mesas", docSnap.id));
+            }
+            alert("Histórico de Mesas apagado com sucesso!");
+
+        } else if (window.abaRelatorioAtual === 'cardapio') {
+            // 2. Apaga APENAS os pedidos online que já foram CONCLUÍDOS
+            const snapPedidos = await window.getDocs(window.collection(window.db, "pedidos_online"));
+            let apagados = 0;
+            for (let docSnap of snapPedidos.docs) {
+                let ped = docSnap.data();
+                if (ped.status === 'concluido') {
+                    await window.deleteDoc(window.doc(window.db, "pedidos_online", docSnap.id));
+                    apagados++;
+                }
+            }
+            alert("Histórico do Cardápio Online apagado com sucesso! (" + apagados + " vendas concluídas removidas)");
+
+        } else if (window.abaRelatorioAtual === 'encomendas') {
+            // 3A. Apaga encomendas concluídas do balcão
+            const snapEnc = await window.getDocs(window.collection(window.db, "vendas_encomendas"));
+            for (let docSnap of snapEnc.docs) {
+                await window.deleteDoc(window.doc(window.db, "vendas_encomendas", docSnap.id));
+            }
+
+            // 3B. Apaga encomendas do Cardápio Online que já estão concluídas
+            const snapPedidosEnc = await window.getDocs(window.collection(window.db, "pedidos_online"));
+            let apagadosOnline = 0;
+            for (let docSnap of snapPedidosEnc.docs) {
+                let ped = docSnap.data();
+                let temEncomenda = ped.itens && ped.itens.some(i => i.isEncomenda === true);
+                
+                if (ped.status === 'concluido' && temEncomenda) {
+                    await window.deleteDoc(window.doc(window.db, "pedidos_online", docSnap.id));
+                    apagadosOnline++;
+                }
+            }
+            alert("Histórico de Encomendas (Balcão e Online) apagado com sucesso!");
+        }
+
+        // Recarrega a tela do relatório para mostrar tudo limpo
+        window.renderizarConteudoRelatorio();
+
+    } catch (err) {
+        console.error("Erro ao limpar histórico:", err);
+        alert("Erro ao limpar histórico. Verifique se você tem permissão no banco de dados.");
+    }
+
+    if (btn) btn.innerHTML = textoOriginal;
+};
+
+// ============================================================
+// 🔐 MÓDULOS DE SEGURANÇA ADICIONADOS (Firebase Auth + LGPD + XSS)
+// ============================================================
+
+// --- 1. VIGIA O LOGIN REAL DO FIREBASE (ninguém mais burla pelo F12) ---
+if (window.onAuthStateChanged && window.auth) {
+    window.onAuthStateChanged(window.auth, function(user) {
+        var modalLogin = document.getElementById('modal-login');
+        if (!modalLogin) return;
+        
+        if (user) {
+            // ✅ Usuário REALMENTE logado no Firebase
+            modalLogin.style.display = 'none';
+            // Garante que a variável local exista (para compatibilidade)
+            if (!window.usuarioLogado) {
+                window.usuarioLogado = { 
+                    tipo: 'mestre', 
+                    nome: user.email || 'Usuário Firebase',
+                    uid: user.uid,
+                    emailVerified: user.emailVerified
+                };
+            }
+            // Aplica permissões e carrega a primeira aba
+            if (typeof window.aplicarPermissoes === 'function') {
+                window.aplicarPermissoes();
+            }
+        } else {
+            // ❌ NÃO está logado no Firebase — força a tela de login
+            // (a menos que seja um funcionário validado anteriormente)
+            if (!window.usuarioLogado || window.usuarioLogado.tipo !== 'funcionario') {
+                window.usuarioLogado = null;
+                modalLogin.style.display = 'flex';
+            }
+        }
+    });
+}
+
+// --- 2. FUNÇÃO DE HASH PARA CPF (LGPD — não salva em texto puro) ---
+window.hashCpf = async function(cpfLimpo) {
+    if (!cpfLimpo) return '';
+    try {
+        var msg = new TextEncoder().encode('tati_salt_' + cpfLimpo.trim());
+        var buf = await crypto.subtle.digest('SHA-256', msg);
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    } catch(e) { return cpfLimpo; }
+};
+
+// --- 3. FUNÇÃO ANTI-XSS — sanitiza texto antes de colocar no HTML ---
+window.sanitizeHtml = function(texto) {
+    if (texto === null || texto === undefined) return '';
+    return String(texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+};
+
+// --- 4. BLOQUEIA CLICKE DIREITO E ATAQUES BÁSICOS (opcional, leve) ---
+document.addEventListener('contextmenu', function(e) {
+    // Só bloqueia em áreas sensíveis, não atrapalha o uso
+    if (e.target.closest('#modal-login')) e.preventDefault();
+});
+
+// --- 5. GERENCIAR CHAVE PIX VIA CONFIGURAÇÕES ---
+window.salvarDadosPix = async function() {
+    var chave = document.getElementById('pix-chave').value.trim();
+    var titular = document.getElementById('pix-titular').value.trim();
+    var banco = document.getElementById('pix-banco').value.trim();
+    
+    if (!chave) return alert('Digite a chave Pix!');
+    
+    try {
+        await window.setDoc(window.doc(window.db, "configuracoes", "pix"), {
+            chavePix: chave,
+            nomeTitularPix: titular,
+            bancoPix: banco,
+            atualizadoEm: new Date().toLocaleString()
+        });
+        alert('✅ Dados Pix salvos com sucesso!\n\nNo cardápio online, a chave já vai aparecer atualizada automaticamente.');
+    } catch(e) {
+        console.error(e);
+        alert('Erro ao salvar: ' + e.message);
+    }
+};
+
+window.carregarDadosPix = async function() {
+    try {
+        var docSnap = await window.getDoc(window.doc(window.db, "configuracoes", "pix"));
+        if (docSnap.exists()) {
+            var d = docSnap.data();
+            if (document.getElementById('pix-chave')) document.getElementById('pix-chave').value = d.chavePix || '';
+            if (document.getElementById('pix-titular')) document.getElementById('pix-titular').value = d.nomeTitularPix || '';
+            if (document.getElementById('pix-banco')) document.getElementById('pix-banco').value = d.bancoPix || '';
+        }
+    } catch(e) { console.warn('Dados Pix ainda não cadastrados no painel.'); }
+};
+
+// Carrega os dados Pix quando abre a aba de configurações
+var _mudancaAbaOriginal = window.mudarAba;
+window.mudarAba = function(aba, btn) {
+    if (_mudancaAbaOriginal) _mudancaAbaOriginal(aba, btn);
+    if (aba === 'configuracoes' || aba === 'secao-configuracoes') {
+        if (typeof window.carregarDadosPix === 'function') window.carregarDadosPix();
+    }
 };
 
     </script>
