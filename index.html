@@ -711,6 +711,7 @@ async function finalizarPedidoWhatsApp() {
         id: Date.now(), 
         data: new Date().toLocaleString(), 
         cliente: cliNome + ' (CPF: ' + cliCpf + ')', 
+        telefone: cliZap,
         itens: carrinho.map(item => ({ 
             name: item.name, 
             quantidade: item.quantidade, 

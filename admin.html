@@ -227,7 +227,12 @@
         <button class="btn-aba" onclick="mudarAba('funcionarios'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Funcionários 👨‍🍳</button>
         <button class="btn-aba" onclick="mudarAba('pdv'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">PDV e Mesas</button>
         <button class="btn-aba" onclick="mudarAba('pedidos'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">Pedidos Online 🔔</button>
-        <button class="btn-aba" onclick="mudarAba('configuracoes'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">⚙️ Configurações</button>
+<button class="tab-btn" onclick="carregarRelatorioVendas()">📊 Relatório de Vendas</button>
+<button class="tab-btn" onclick="carregarItensMaisVendidos()">🔥 Itens Mais Vendidos</button>
+<button class="tab-btn" onclick="carregarZonasFrete()">🚚 Zonas de Frete</button>        <button class="btn-aba" onclick="mudarAba('configuracoes'); toggleMenuAdmin();" style="background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer; border-radius: 5px; font-weight: 500;">⚙️ Configurações</button>
+        <button class="tab-btn" onclick="fazerLogout()" style="color: #d9534f; font-weight: bold; border-top: 1px solid #eee; margin-top: 5px; padding-top: 10px;">
+    🚪 Sair (Logout)
+</button>
     </div>
 </div>
 
@@ -941,45 +946,70 @@ window.aplicarPermissoes = function() {
 };
 
 window.mudarAba = function(aba, btn) {
+    // 1. Remove a classe 'active' de todos os botões do menu
     var botoes = document.querySelectorAll('.tab-btn');
-    for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
-    
-    var secoes = document.querySelectorAll('.secao-painel');
-    for(var j=0; j<secoes.length; j++) secoes[j].style.display = 'none';
+    for (var i = 0; i < botoes.length; i++) {
+        botoes[i].classList.remove('active');
+    }
 
-    if (aba === 'produtos') { 
-        document.getElementById('secao-produtos').style.display = 'block'; 
-        window.carregarProdutosAdmin(); 
-        window.renderizarOpcoesEncomendaAdmin(); 
-    } 
-    else if (aba === 'insumos') { 
-        document.getElementById('secao-insumos').style.display = 'block'; 
-        window.carregarInsumosAdmin(); 
-    } 
-    else if (aba === 'encomendas') { 
-        document.getElementById('secao-encomendas').style.display = 'block'; 
-        window.carregarEncomendasAdmin(); 
-        window.carregarZonasBalcao(); 
-        window.carregarOpcoesSelectBalcao(); 
-        window.carregarComplementosNoBalcao(); // <--- Puxa os complementos do balcão perfeitamente
-    } 
-    else if (aba === 'clientes') { 
-        document.getElementById('secao-clientes').style.display = 'block'; 
-        window.carregarClientesAdmin(); 
-    } 
-    else if (aba === 'funcionarios') { 
-        document.getElementById('secao-funcionarios').style.display = 'block'; 
-        window.carregarFuncionariosAdmin(); 
+    // 2. Esconde todas as seções que possuem a classe de painel
+    var secoes = document.querySelectorAll('.secao-painel');
+    for (var j = 0; j < secoes.length; j++) {
+        secoes[j].style.display = 'none';
     }
-    else if (aba === 'pdv') { 
-        document.getElementById('secao-pdv').style.display = 'block'; 
-        window.carregarPDV(); 
+
+    // 3. Procura a seção pelo ID exato ou tentando o prefixo 'secao-'
+    var secaoAtiva = document.getElementById(aba) || document.getElementById('secao-' + aba);
+    if (secaoAtiva) {
+        secaoAtiva.style.display = 'block';
+    } else {
+        console.warn("Atenção: Nenhuma seção encontrada no HTML para a aba:", aba);
     }
-    else if (aba === 'pedidos_online') { 
-        document.getElementById('secao-pedidos_online').style.display = 'block'; 
-        window.renderizarPedidosDiarios(); 
+
+    // 4. Dispara a função correspondente de forma segura
+    if (aba === 'produtos' || aba === 'secao-produtos') { 
+        if (typeof window.carregarProdutosAdmin === 'function') window.carregarProdutosAdmin(); 
+        if (typeof window.renderizarOpcoesEncomendaAdmin === 'function') window.renderizarOpcoesEncomendaAdmin(); 
+    } 
+    else if (aba === 'insumos' || aba === 'secao-insumos') { 
+        if (typeof window.carregarInsumosAdmin === 'function') window.carregarInsumosAdmin(); 
+    } 
+    else if (aba === 'encomendas' || aba === 'secao-encomendas') { 
+        if (typeof window.carregarEncomendasAdmin === 'function') window.carregarEncomendasAdmin(); 
+        if (typeof window.carregarZonasBalcao === 'function') window.carregarZonasBalcao(); 
+        if (typeof window.carregarOpcoesSelectBalcao === 'function') window.carregarOpcoesSelectBalcao();
+        if (typeof window.carregarComplementosNoBalcao === 'function') window.carregarComplementosNoBalcao();
+    } 
+    else if (aba === 'clientes' || aba === 'secao-clientes') { 
+        if (typeof window.carregarClientesAdmin === 'function') window.carregarClientesAdmin(); 
+    } 
+    else if (aba === 'funcionarios' || aba === 'secao-funcionarios') { 
+        if (typeof window.carregarFuncionariosAdmin === 'function') window.carregarFuncionariosAdmin(); 
     }
-    
+    else if (aba === 'pdv' || aba === 'secao-pdv') { 
+        if (typeof window.carregarPDV === 'function') window.carregarPDV(); 
+    }
+    else if (aba === 'pedidos_online' || aba === 'secao-pedidos_online') { 
+        if (typeof window.renderizarPedidosDiarios === 'function') window.renderizarPedidosDiarios(); 
+    }
+// --- ABRIR MODAIS PELO MENU LATERAL ---
+    else if (aba === 'relatorio_vendas') { 
+        var modalRel = document.getElementById('modal-relatorio-vendas');
+        if (modalRel) modalRel.style.display = 'flex';
+        if (typeof window.carregarRelatorioVendas === 'function') window.carregarRelatorioVendas(); 
+    }
+    else if (aba === 'itens_mais_vendidos') { 
+        var modalItens = document.getElementById('modal-itens-vendidos');
+        if (modalItens) modalItens.style.display = 'flex';
+        if (typeof window.carregarItensMaisVendidos === 'function') window.carregarItensMaisVendidos(); 
+    }
+    else if (aba === 'zonas_frete') { 
+        var modalZonas = document.getElementById('modal-zonas-frete');
+        if (modalZonas) modalZonas.style.display = 'flex';
+        if (typeof window.carregarZonasFrete === 'function') window.carregarZonasFrete(); 
+    }
+
+    // Acende o botão clicado
     if (btn) btn.classList.add('active');
 };
 
@@ -1181,6 +1211,45 @@ insumosNuvem.forEach(function(insumo) {
             </div>
         </div>
     `;});};
+
+window.editandoInsumoId = window.editandoInsumoId || null;
+
+window.salvarInsumo = async function(event) {
+    event.preventDefault();
+
+    var nome = document.getElementById('ins-nome').value.trim();
+    var quantidade = parseFloat(document.getElementById('ins-quantidade').value) || 0;
+    var custo = parseFloat(document.getElementById('ins-valor').value) || 0;
+    var fornecedor = document.getElementById('ins-fornecedor').value.trim();
+    var dataCompra = document.getElementById('ins-data').value;
+
+    if (!nome) {
+        alert('Informe o nome do insumo.');
+        return;
+    }
+
+    var dadosInsumo = { nome: nome, quantidade: quantidade, custo: custo, fornecedor: fornecedor, dataCompra: dataCompra };
+
+    try {
+        if (window.editandoInsumoId) {
+            await window.updateDoc(window.doc(window.db, "insumos", window.editandoInsumoId), dadosInsumo);
+            window.editandoInsumoId = null;
+            var btnSalvar = document.getElementById('btn-salvar-insumo');
+            if (btnSalvar) btnSalvar.innerText = 'Salvar Insumo';
+            alert('Insumo atualizado com sucesso!');
+        } else {
+            var sucesso = await window.salvarInsumoNaNuvem(dadosInsumo);
+            if (!sucesso) { alert('Erro ao salvar insumo.'); return; }
+            alert('Insumo salvo com sucesso!');
+        }
+
+        document.getElementById('form-insumo').reset();
+        if (typeof window.carregarInsumosAdmin === 'function') window.carregarInsumosAdmin();
+    } catch (e) {
+        console.error('Erro ao salvar insumo:', e);
+        alert('Erro ao salvar insumo: ' + e.message);
+    }
+};
 
 window.excluirInsumoAdmin = async function(firestoreId) {
     if (!confirm('Deseja realmente excluir este insumo da nuvem?')) return;
@@ -1389,7 +1458,31 @@ window.carregarOpcoesSelectBalcao = async function() {
                 return;
             }
 
-            var totalGeral = precoOpcao + taxaEntrega;
+            // --- CAPTURA OS COMPLEMENTOS E ADICIONAIS MARCADOS ---
+            var extrasFormatados = [];
+            var extrasTextoSimples = [];
+            var totalExtras = 0;
+            document.querySelectorAll('.check-complemento-balcao:checked').forEach(function(cb) {
+                var tipo = cb.dataset.tipo || '';
+                if (!tipo) {
+                    var blocoPai = cb.closest('div');
+                    if (blocoPai) {
+                        var labelGrupo = blocoPai.querySelector('strong, span, h4, label');
+                        tipo = labelGrupo ? labelGrupo.innerText.split('\n')[0].replace(/[📌\s]/g, '').trim() : 'Adicional';
+                    } else {
+                        tipo = 'Adicional';
+                    }
+                }
+                if (!tipo) tipo = 'Adicional';
+
+                var nome = cb.value;
+                var precoItem = parseFloat(cb.dataset.preco) || 0;
+                extrasFormatados.push('• *' + tipo.charAt(0).toUpperCase() + tipo.slice(1).toLowerCase() + ':* ' + nome);
+                extrasTextoSimples.push(tipo + ': ' + nome);
+                totalExtras += precoItem;
+            });
+
+            var totalGeral = precoOpcao + totalExtras + taxaEntrega;
             var fileInput = document.getElementById('eb-foto');
             var file = fileInput.files[0];
 
@@ -1402,7 +1495,9 @@ window.carregarOpcoesSelectBalcao = async function() {
                     horaRetirada: document.getElementById('eb-hora').value,
                     opcaoEscolhida: nomeOpcao,
                     descricao: document.getElementById('eb-desc').value,
-                    preco: precoOpcao,
+                    complementos: extrasTextoSimples.join(", "),
+                    complementosLista: extrasFormatados,
+                    preco: precoOpcao + totalExtras,
                     taxaEntrega: taxaEntrega,
                     total: totalGeral,
                     tipoEntrega: tipoEntregaVal,
@@ -1450,6 +1545,14 @@ window.carregarEncomendasAdmin = async function() {
         // Converte o objeto para string para enviar pro relatório ao concluir
         var encJson = JSON.stringify(enc).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
+        // Complementos e Adicionais escolhidos (cardápio online ou balcão)
+        var complementosHtml = '';
+        if (enc.complementosLista && enc.complementosLista.length > 0) {
+            complementosHtml = '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>✨ Complementos e Adicionais:</strong><br>' + enc.complementosLista.join('<br>') + '</p>';
+        } else if (enc.complementos) {
+            complementosHtml = '<p style="margin: 5px 0; font-size: 0.9rem;"><strong>✨ Complementos e Adicionais:</strong> ' + enc.complementos + '</p>';
+        }
+
         container.innerHTML += `
             <div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;">
                 <div style="display: flex; justify-content: space-between;">
@@ -1461,6 +1564,7 @@ window.carregarEncomendasAdmin = async function() {
                 ${entregaInfo}
                 <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Opção:</strong> ${enc.opcaoEscolhida}</p>
                 <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Detalhes:</strong> ${enc.descricao}</p>
+                ${complementosHtml}
                 <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Valor Total:</strong> R$ ${Number(enc.total).toFixed(2)} | <strong>Pagamento:</strong> ${enc.statusPagamento} (${enc.formaPagamento}) ${atendenteHtml}</p>
                 <div style="margin-top: 8px;"><label style="font-size: 0.8rem; font-weight: bold;">Foto de Referência:</label><br>${fotoHtml}</div>
                 
@@ -1599,79 +1703,7 @@ window.removerEncomendaAdmin = async function(firestoreId) {
             });
         };
 
-        // RELATÓRIO DE VENDAS (NUVEM)
-        window.abrirRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'flex'; window.mudarAbaRelatorio('mesas', document.querySelector('.rel-tab-btn')); };
-        window.fecharRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'none'; };
-        window.mudarAbaRelatorio = function(tipo, btn) { abaRelatorioAtual = tipo; var botoes = document.querySelectorAll('#modal-relatorio-vendas .rel-tab-btn'); for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active'); if(btn) btn.classList.add('active'); window.renderizarConteudoRelatorio(); };
-        
-// RELATÓRIO DE VENDAS (NUVEM)
-        window.abrirRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'flex'; window.mudarAbaRelatorio('mesas', document.querySelector('.rel-tab-btn')); };
-        window.fecharRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'none'; };
-        window.mudarAbaRelatorio = function(tipo, btn) { abaRelatorioAtual = tipo; var botoes = document.querySelectorAll('#modal-relatorio-vendas .rel-tab-btn'); for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active'); if(btn) btn.classList.add('active'); window.renderizarConteudoRelatorio(); };
-        
-        window.renderizarConteudoRelatorio = async function() {
-            var container = document.getElementById('conteudo-relatorio');
-            var totalGeralEl = document.getElementById('relatorio-total-geral');
-            if (!container || !totalGeralEl) return;
-            
-            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 20px;">Carregando dados da nuvem...</p>';
-            var somaTotal = 0;
-
-            if (abaRelatorioAtual === 'mesas') {
-                const snapMesas = await getDocs(collection(db, "vendas_mesas"));
-                let vendasMesasNuvem = [];
-                snapMesas.forEach(d => vendasMesasNuvem.push(d.data()));
-
-                if (vendasMesasNuvem.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda registrada na nuvem.</p>';
-                    totalGeralEl.innerText = '0.00';
-                    return;
-                }
-                container.innerHTML = '';
-                vendasMesasNuvem.slice().reverse().forEach(function(v) {
-                    somaTotal += Number(v.total || 0);
-                    var itensStr = v.itens ? v.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
-                    var atendenteStr = v.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + v.atendente + '</span>' : '';
-                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + v.mesa + '</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Itens: ' + itensStr + '</div>' + atendenteStr + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Pagamento: ' + (v.pagamento || '').toUpperCase() + '</span><span>' + v.data + '</span></div></div>';
-                });
-
-} else if (abaRelatorioAtual === 'cardapio') {
-                var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
-                var concluidos = vendasCardapio.filter(function(v) { return v.status === 'concluido'; });
-                
-                if (concluidos.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda online concluída na nuvem.</p>';
-                    totalGeralEl.innerText = '0.00';
-                    return;
-                }
-                container.innerHTML = '';
-                concluidos.slice().reverse().forEach(function(vc) {
-                    somaTotal += Number(vc.total || 0);
-                    var itensStr = vc.itens ? vc.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
-                    var tipoAtendimento = vc.tipoEntrega && vc.tipoEntrega.includes('Entrega') ? '🛵 Delivery (' + (vc.zona || 'Zona') + ')' : '🏪 Retirada na Loja';
-                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink); margin-bottom: 4px;"><span>Cardápio Online</span><span>R$ ' + Number(vc.total).toFixed(2) + '</span></div><div style="font-size: 0.85rem; color: #333; margin-bottom: 2px;"><strong>Cliente:</strong> ' + (vc.cliente || 'Balcão') + '</div><div style="font-size: 0.85rem; color: #2e7d32; font-weight: bold; margin-bottom: 4px;">' + tipoAtendimento + '</div>' + (itensStr ? '<div style="font-size: 0.8rem; color: #555; margin-bottom: 4px;"><strong>Itens:</strong> ' + itensStr + '</div>' : '') + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + vc.formaPagamento + '</span><span>' + vc.data + '</span></div></div>';
-                });
-
-            } else if (abaRelatorioAtual === 'encomendas') {
-                const snapEnc = await getDocs(collection(db, "vendas_encomendas"));
-                let encNuvem = [];
-                snapEnc.forEach(d => encNuvem.push(d.data()));
-
-                if (encNuvem.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda concluída no relatório.</p>';
-                    totalGeralEl.innerText = '0.00';
-                    return;
-                }
-                container.innerHTML = '';
-                encNuvem.reverse().forEach(function(enc) {
-                    somaTotal += Number(enc.total || 0);
-                    var atendenteEnc = enc.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
-                    container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + enc.opcaoEscolhida + '</span><span>R$ ' + Number(enc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + enc.nomeCliente + ' (' + enc.telefone + ')</div>' + atendenteEnc + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Concluído em: ' + (enc.dataConclusao || enc.dataPedido) + '</span><span>Status: ✔ Concluído</span></div></div>';
-                });
-            }
-            totalGeralEl.innerText = somaTotal.toFixed(2);
-        };
-        
+       
                     // VERIFICAR LEMBRETES DE ENCOMENDA (NUVEM)
         window.verificarLembretesEncomendas = async function() {
             var banner = document.getElementById('banner-alerta-encomenda');
@@ -2248,114 +2280,7 @@ window.abrirZonasFrete = async function() {
             });
         };
 
-        window.abrirRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'flex'; window.mudarAbaRelatorio('mesas', document.querySelector('.rel-tab-btn')); };
-        window.fecharRelatorioVendas = function() { document.getElementById('modal-relatorio-vendas').style.display = 'none'; };
-        window.mudarAbaRelatorio = function(tipo, btn) { abaRelatorioAtual = tipo; var botoes = document.querySelectorAll('#modal-relatorio-vendas .rel-tab-btn'); for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active'); if(btn) btn.classList.add('active'); window.renderizarConteudoRelatorio(); };
-        
-window.renderizarConteudoRelatorio = async function() {
-    var container = document.getElementById('conteudo-relatorio');
-    var totalGeralEl = document.getElementById('relatorio-total-geral');
-    if (!container || !totalGeralEl) return;
     
-    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 20px;">Carregando dados da nuvem...</p>';
-    var somaTotal = 0;
-
-    if (abaRelatorioAtual === 'mesas') {
-        // Busca vendas de mesas da nuvem
-        const snapMesas = await getDocs(collection(db, "vendas_mesas"));
-        let vendasMesasNuvem = [];
-        snapMesas.forEach(d => vendasMesasNuvem.push(d.data()));
-
-        if (vendasMesasNuvem.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda registrada na nuvem.</p>';
-            totalGeralEl.innerText = '0.00';
-            return;
-        }
-        container.innerHTML = '';
-        vendasMesasNuvem.slice().reverse().forEach(function(v) {
-            somaTotal += Number(v.total || 0);
-            var itensStr = v.itens ? v.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
-            var atendenteStr = v.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + v.atendente + '</span>' : '';
-            container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + v.mesa + '</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Itens: ' + itensStr + '</div>' + atendenteStr + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Pagamento: ' + (v.pagamento || '').toUpperCase() + '</span><span>' + v.data + '</span></div></div>';
-        });
-
-    } else if (abaRelatorioAtual === 'cardapio') {
-        var vendasCardapio = await window.obterPedidosOnlineDaNuvem();
-        var concluidos = vendasCardapio.filter(function(v) { return v.status === 'concluido'; });
-        if (concluidos.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda online concluída na nuvem.</p>';
-            totalGeralEl.innerText = '0.00';
-            return;
-        }
-        container.innerHTML = '';
-        concluidos.slice().reverse().forEach(function(vc) {
-            somaTotal += Number(vc.total || 0);
-            var itensStr = vc.itens ? vc.itens.map(function(i) { return i.quantidade + 'x ' + i.name; }).join(', ') : '';
-            var tipoAtendimento = vc.tipoEntrega === 'Entrega (Delivery)' ? '🛵 Delivery (' + (vc.zona || 'Zona') + ')' : '🏪 Retirada na Loja';
-            container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink); margin-bottom: 4px;"><span>Cardápio Online</span><span>R$ ' + Number(vc.total).toFixed(2) + '</span></div><div style="font-size: 0.85rem; color: #333; margin-bottom: 2px;"><strong>Cliente:</strong> ' + (vc.cliente || 'Balcão') + '</div><div style="font-size: 0.85rem; color: #2e7d32; font-weight: bold; margin-bottom: 4px;">' + tipoAtendimento + '</div>' + (itensStr ? '<div style="font-size: 0.8rem; color: #555; margin-bottom: 4px;"><strong>Itens:</strong> ' + itensStr + '</div>' : '') + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + vc.formaPagamento + '</span><span>' + vc.data + '</span></div></div>';
-        });
-
-    } else if (abaRelatorioAtual === 'encomendas') {
-        var encNuvem = await window.obterEncomendasDaNuvem();
-        if (encNuvem.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda na nuvem.</p>';
-            totalGeralEl.innerText = '0.00';
-            return;
-        }
-        container.innerHTML = '';
-        encNuvem.forEach(function(enc) {
-            somaTotal += Number(enc.total || 0);
-            var atendenteEnc = enc.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + enc.atendente + '</span>' : '';
-            container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + enc.opcaoEscolhida + '</span><span>R$ ' + Number(enc.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + enc.nomeCliente + ' (' + enc.telefone + ')</div>' + atendenteEnc + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Retirada: ' + enc.dataRetirada + ' às ' + enc.horaRetirada + '</span><span>Status: ' + enc.statusPagamento + '</span></div></div>';
-        });
-    }
-    totalGeralEl.innerText = somaTotal.toFixed(2);
-};
-
-window.limparHistoricoRelatorio = async function() {
-    if (confirm('Deseja realmente limpar todo o histórico desta aba na nuvem?')) {
-        try {
-            let nomeColecao = '';
-            
-            // Define qual coleção do Firebase vai ser limpa com base na aba aberta
-            if (abaRelatorioAtual === 'mesas') {
-                nomeColecao = 'vendas_mesas'; // Nome da collection de mesas no Firestore
-                vendasMesas = [];
-                localStorage.removeItem('tati_vendas_mesas');
-            } 
-            else if (abaRelatorioAtual === 'cardapio') {
-                nomeColecao = 'pedidos_online'; // Nome da collection de pedidos do cardápio
-                localStorage.removeItem('tati_vendas_cardapio');
-            } 
-            else if (abaRelatorioAtual === 'encomendas') {
-                nomeColecao = 'encomendas'; // Nome da collection de encomendas
-                encomendas = [];
-                localStorage.removeItem('tati_encomendas');
-            }
-
-            if (nomeColecao) {
-                // Pega todos os documentos daquela aba e deleta um por um da nuvem
-                const snapshot = await window.getDocs(window.collection(window.db, nomeColecao));
-                const promessasDeExclusao = snapshot.docs.map(docItem => 
-                    window.deleteDoc(window.doc(window.db, nomeColecao, docItem.id))
-                );
-                await Promise.all(promessasDeExclusao);
-            }
-
-            if (abaRelatorioAtual === 'encomendas' && window.carregarEncomendasAdmin) {
-                window.carregarEncomendasAdmin();
-            }
-
-            window.renderizarConteudoRelatorio();
-            alert("Histórico da aba limpo com sucesso!");
-
-        } catch (erro) {
-            console.error("Erro ao limpar histórico:", erro);
-            alert("Erro ao tentar apagar os dados do banco de dados.");
-        }
-    }
-};
-
 var abaPedidosDiariosAtual = 'delivery';
 window.mudarAba = function(aba, btn) {
     var botoes = document.querySelectorAll('.tab-btn');
@@ -2395,85 +2320,21 @@ window.mudarAba = function(aba, btn) {
         document.getElementById('secao-pedidos_online').style.display = 'block'; 
         window.renderizarPedidosDiarios(); 
     }
+
+    else if (aba === 'relatorio_vendas') { 
+        document.getElementById('secao-relatorio_vendas').style.display = 'block'; 
+        if (typeof window.carregarRelatorioVendas === 'function') window.carregarRelatorioVendas(); 
+    }
+    else if (aba === 'itens_mais_vendidos') { 
+        document.getElementById('secao-itens_mais_vendidos').style.display = 'block'; 
+        if (typeof window.carregarItensMaisVendidos === 'function') window.carregarItensMaisVendidos(); 
+    }
+    else if (aba === 'zonas_frete') { 
+        document.getElementById('secao-zonas_frete').style.display = 'block'; 
+        if (typeof window.carregarZonasFrete === 'function') window.carregarZonasFrete(); 
+    }
     
     if (btn) btn.classList.add('active');
-};
-
-window.renderizarPedidosDiarios = async function() {
-    var container = document.getElementById('lista-pedidos-diarios');
-    if (!container) return;
-    
-    container.innerHTML = '<p style="text-align: center; color: #666;">Carregando pedidos da nuvem...</p>';
-    
-    var pedidosNuvem = [];
-    try {
-        pedidosNuvem = await window.obterPedidosOnlineDaNuvem();
-    } catch (e) {
-        pedidosNuvem = [];
-    }
-
-    var pendentes = pedidosNuvem.filter(function(p) {
-        var eDelivery = p.tipoEntrega && p.tipoEntrega.includes('Entrega');
-        if (window.tipoPedidoAtual === 'delivery') {
-            return p.status === 'pendente' && eDelivery;
-        } else {
-            return p.status === 'pendente' && !eDelivery;
-        }
-    });
-
-    if (pendentes.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Nenhum pedido pendente nesta aba.</p>';
-        return;
-    }
-
-    container.innerHTML = '';
-    pendentes.forEach(function(pedido) {
-        
-        // --- FORMATAÇÃO INTELIGENTE DOS ITENS E ENCOMENDAS ---
-        var itensHtml = pedido.itens ? pedido.itens.map(function(i) {
-            var linha = `• <strong>${i.quantidade}x ${i.name}</strong> (R$ ${(i.preco * i.quantidade).toFixed(2)})`;
-            
-            // Se for encomenda, expande os detalhes e complementos no painel
-            if (i.isEncomenda && i.detalhes) {
-                var d = i.detalhes;
-                if (d.dataRetirada && d.horaRetirada) {
-                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;🕒 <em>Retirada:</em> ${d.dataRetirada} às ${d.horaRetirada}`;
-                }
-                if (d.descricao) {
-                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;📝 <em>Detalhes:</em> ${d.descricao}`;
-                }
-                if (d.complementosLista && d.complementosLista.length > 0) {
-                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;✨ <strong>Complementos:</strong><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;` + d.complementosLista.join('<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
-                } else if (d.complementos) {
-                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;✨ <em>Complementos:</em> ${d.complementos}`;
-                }
-            }
-            return linha;
-        }).join('<br><br>') : '';
-
-        var taxaHtml = pedido.taxaEntrega > 0 ? `<br><strong>Taxa de Entrega:</strong> R$ ${Number(pedido.taxaEntrega).toFixed(2)} (${pedido.zona || 'Zona'})<br><strong>Endereço:</strong> ${pedido.endereco}` : '<br><strong>Tipo:</strong> Retirada na Loja';
-
-        var infoTrocoHtml = "";
-        if (pedido.formaPagamento === 'Dinheiro' && pedido.trocoPara && pedido.trocoPara !== 'Não se aplica' && pedido.trocoPara !== 'Não informado') {
-            infoTrocoHtml = ` <span style="color: #d9534f; font-weight: bold;">(Troco para: R$ ${pedido.trocoPara})</span>`;
-        }
-
-        container.innerHTML += `
-            <div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa; padding: 15px; border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <strong style="color: var(--pink); font-size: 1.05rem;">${pedido.cliente}</strong>
-                    <span style="font-size: 0.8rem; color: #666;">${pedido.data}</span>
-                </div>
-                <div style="margin: 8px 0; font-size: 0.9rem; line-height: 1.4;">
-                    <strong>Itens:</strong><br>${itensHtml}
-                </div>
-                <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Pagamento:</strong> ${pedido.formaPagamento}${infoTrocoHtml} — <strong>Total:</strong> R$ ${Number(pedido.total).toFixed(2)}${taxaHtml}</p>
-                <div style="margin-top: 12px; text-align: right;">
-                    <button onclick="concluirPedidoOnlineAdmin('${pedido.firestoreId}')" style="background: #2e7d32; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Concluir Pedido</button>
-                </div>
-            </div>
-        `;
-    });
 };
 
 window.marcarPedidoConcluido = async function(firestoreId) {
@@ -2544,7 +2405,27 @@ window.renderizarPedidosDiarios = async function() {
 
     container.innerHTML = '';
     pendentes.forEach(function(pedido) {
-        var itensHtml = pedido.itens ? pedido.itens.map(i => `${i.quantidade}x ${i.name} (R$ ${(i.preco * i.quantidade).toFixed(2)})`).join('<br>') : '';
+        // --- FORMATAÇÃO INTELIGENTE DOS ITENS E ENCOMENDAS (com complementos) ---
+        var itensHtml = pedido.itens ? pedido.itens.map(function(i) {
+            var linha = `• <strong>${i.quantidade}x ${i.name}</strong> (R$ ${(i.preco * i.quantidade).toFixed(2)})`;
+
+            if (i.isEncomenda && i.detalhes) {
+                var d = i.detalhes;
+                if (d.dataRetirada && d.horaRetirada) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;🕒 <em>Retirada:</em> ${d.dataRetirada} às ${d.horaRetirada}`;
+                }
+                if (d.descricao) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;📝 <em>Detalhes:</em> ${d.descricao}`;
+                }
+                if (d.complementosLista && d.complementosLista.length > 0) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;✨ <strong>Complementos e Adicionais:</strong><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;` + d.complementosLista.join('<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+                } else if (d.complementos) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;✨ <em>Complementos e Adicionais:</em> ${d.complementos}`;
+                }
+            }
+            return linha;
+        }).join('<br><br>') : '';
+
         var taxaHtml = pedido.taxaEntrega > 0 ? `<br><strong>Taxa de Entrega:</strong> R$ ${Number(pedido.taxaEntrega).toFixed(2)} (${pedido.zona || 'Zona'})<br><strong>Endereço:</strong> ${pedido.endereco}` : '<br><strong>Tipo:</strong> Retirada na Loja';
 
         // Lógica para destacar o Troco se for Dinheiro
@@ -2552,6 +2433,9 @@ window.renderizarPedidosDiarios = async function() {
         if (pedido.formaPagamento === 'Dinheiro' && pedido.trocoPara && pedido.trocoPara !== 'Não se aplica' && pedido.trocoPara !== 'Não informado') {
             infoTrocoHtml = ` <span style="color: #d9534f; font-weight: bold;">(Troco para: R$ ${pedido.trocoPara})</span>`;
         }
+
+        var eDeliveryFlag = pedido.tipoEntrega && pedido.tipoEntrega.includes('Entrega') ? 'delivery' : 'retirada';
+        var telSeguro = (pedido.telefone || '').replace(/'/g, "\\'");
 
         container.innerHTML += `
             <div class="card" style="border-left: 4px solid var(--pink); margin-bottom: 15px; background: #fafafa;">
@@ -2562,19 +2446,30 @@ window.renderizarPedidosDiarios = async function() {
                 <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Itens:</strong><br>${itensHtml}</p>
                 <p style="margin: 6px 0; font-size: 0.9rem;"><strong>Pagamento:</strong> ${pedido.formaPagamento}${infoTrocoHtml} — <strong>Total:</strong> R$ ${Number(pedido.total).toFixed(2)}${taxaHtml}</p>
                 <div style="margin-top: 12px; text-align: right;">
-                    <button onclick="concluirPedidoOnlineAdmin('${pedido.firestoreId}')" style="background: #2e7d32; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Concluir Pedido</button>
+                    <button onclick="concluirPedidoOnlineAdmin('${pedido.firestoreId}', '${telSeguro}', '${eDeliveryFlag}')" style="background: #2e7d32; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✔ Concluir Pedido</button>
                 </div>
             </div>
         `;
     });
 };
 
-window.concluirPedidoOnlineAdmin = async function(firestoreId) {
+window.concluirPedidoOnlineAdmin = async function(firestoreId, telefone, tipoFlag) {
     if (confirm('Deseja concluir este pedido e enviá-lo para o relatório de vendas?')) {
         var sucesso = await window.concluirPedidoOnlineNaNuvem(firestoreId);
         if (sucesso) {
             window.renderizarPedidosDiarios();
-            alert('Pedido concluído com sucesso! 🎉');
+
+            var telLimpo = (telefone || '').replace(/\D/g, '');
+            if (telLimpo.length >= 10) {
+                if (!telLimpo.startsWith('55')) telLimpo = '55' + telLimpo;
+                var msg = tipoFlag === 'delivery'
+                    ? 'Olá! 🛵 Seu pedido saiu para entrega!'
+                    : 'Olá! ✅ Seu pedido já está pronto para retirada!';
+                window.open('https://wa.me/' + telLimpo + '?text=' + encodeURIComponent(msg), '_blank');
+                alert('Pedido concluído! Abri o WhatsApp com o aviso pronto — é só clicar em enviar. 🎉');
+            } else {
+                alert('Pedido concluído com sucesso! 🎉 (Não achei o telefone deste pedido pra avisar automaticamente pelo WhatsApp — provavelmente é um pedido antigo, feito antes dessa função existir.)');
+            }
         } else {
             alert('Erro ao concluir o pedido.');
         }
@@ -3359,6 +3254,10 @@ window.carregarComplementosNoBalcao = async function() {
 // Força o clique em qualquer botão de encomenda a abrir a aba certa e carregar os complementos
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[onclick*="encomendas"]').forEach(botao => {
+        // Não mexe no botão "Vendas Encomendas" do Relatório de Vendas -
+        // ele já tem seu próprio onclick correto (mudarAbaRelatorio) e não pode ser sobrescrito.
+        if (botao.closest('#modal-relatorio-vendas')) return;
+
         botao.removeAttribute('onclick'); // Remove o antigo para não dar conflito
         botao.addEventListener('click', () => {
             window.mudarAba('encomendas');
@@ -3368,6 +3267,177 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// --- 1. ABRIR E CARREGAR RELATÓRIO DE VENDAS ---
+window.carregarRelatorioVendas = async function() {
+    var modal = document.getElementById('modal-relatorio-vendas');
+    if (modal) modal.style.display = 'flex';
+
+    var container = document.getElementById('conteudo-relatorio');
+    if (container) {
+        container.innerHTML = '<p style="text-align: center; color: #666;">Carregando histórico de vendas...</p>';
+    }
+
+    try {
+        // Se você tiver uma função que busca o histórico da nuvem, chame aqui. 
+        // Exemplo padrão buscando dos pedidos concluidos ou salvos:
+        if (typeof window.obterPedidosConcluidosDaNuvem === 'function') {
+            var vendas = await window.obterPedidosConcluidosDaNuvem();
+            // Lógica de exibição padrão do relatório...
+        } else {
+            if (container) container.innerHTML = '<p style="text-align: center; color: #666;">Nenhum registro encontrado no momento.</p>';
+        }
+    } catch (e) {
+        console.error("Erro ao carregar relatório:", e);
+        if (container) container.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar dados do relatório.</p>';
+    }
+};
+
+window.fecharRelatorioVendas = function() {
+    var modal = document.getElementById('modal-relatorio-vendas');
+    if (modal) modal.style.display = 'none';
+};
+
+// --- 2. ABRIR E CARREGAR ITENS MAIS VENDIDOS ---
+window.carregarItensMaisVendidos = async function() {
+    var modal = document.getElementById('modal-itens-vendidos');
+    if (modal) modal.style.display = 'flex';
+
+    if (typeof window.calcularItensMaisVendidos === 'function') {
+        window.calcularItensMaisVendidos();
+    }
+};
+
+window.fecharModalItensMaisVendidos = function() {
+    var modal = document.getElementById('modal-itens-vendidos');
+    if (modal) modal.style.display = 'none';
+};
+
+// --- 3. ABRIR E CARREGAR ZONAS DE FRETE ---
+window.carregarZonasFrete = async function() {
+    var modal = document.getElementById('modal-zonas-frete');
+    if (modal) modal.style.display = 'flex';
+
+    if (typeof window.renderizarZonasFrete === 'function') {
+        window.renderizarZonasFrete();
+    }
+};
+
+window.fecharZonasFrete = function() {
+    var modal = document.getElementById('modal-zonas-frete');
+    if (modal) modal.style.display = 'none';
+};
+
+window.abrirRelatorioVendas = function() {
+    var modal = document.getElementById('modal-relatorio-vendas');
+    if (modal) modal.style.display = 'flex';
+    window.mudarAbaRelatorio('mesas', document.querySelector('#modal-relatorio-vendas .rel-tab-btn'));
+};
+
+window.fecharRelatorioVendas = function() {
+    var modal = document.getElementById('modal-relatorio-vendas');
+    if (modal) modal.style.display = 'none';
+};
+
+window.mudarAbaRelatorio = function(tipo, btn) {
+    window.abaRelatorioAtual = tipo;
+    var botoes = document.querySelectorAll('#modal-relatorio-vendas .rel-tab-btn');
+    for(var i=0; i<botoes.length; i++) botoes[i].classList.remove('active');
+    if(btn) btn.classList.add('active');
+    window.renderizarConteudoRelatorio();
+};
+
+window.renderizarConteudoRelatorio = async function() {
+    var container = document.getElementById('conteudo-relatorio');
+    var totalGeralEl = document.getElementById('relatorio-total-geral');
+    if (!container || !totalGeralEl) return;
+    
+    container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 20px;">Carregando dados da nuvem...</p>';
+    var somaTotal = 0;
+
+    try {
+        if (window.abaRelatorioAtual === 'mesas') {
+            let vendasMesasNuvem = [];
+            try {
+                const snapMesas = await window.getDocs(window.collection(window.db, "vendas_mesas"));
+                snapMesas.forEach(d => vendasMesasNuvem.push(d.data()));
+            } catch(e) { console.warn(e); container.innerHTML = '<p style="color:red;text-align:center;">Erro ao buscar vendas de mesa: ' + e.message + '</p>'; return; }
+
+            if (vendasMesasNuvem.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda de mesa registrada.</p>';
+                totalGeralEl.innerText = '0.00';
+                return;
+            }
+            container.innerHTML = '';
+            vendasMesasNuvem.slice().reverse().forEach(function(v) {
+                somaTotal += Number(v.total || 0);
+                var itensStr = v.itens ? v.itens.map(i => i.quantidade + 'x ' + i.name).join(', ') : '';
+                var atendenteStr = v.atendente ? '<br><span style="color: #2e7d32; font-size: 0.8rem;"><strong>Atendente:</strong> ' + v.atendente + '</span>' : '';
+                container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>' + v.mesa + '</span><span>R$ ' + Number(v.total).toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Itens: ' + itensStr + '</div>' + atendenteStr + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Pagamento: ' + (v.pagamento || '').toUpperCase() + '</span><span>' + v.data + '</span></div></div>';
+            });
+
+        } else if (window.abaRelatorioAtual === 'cardapio') {
+            let concluidos = [];
+            try {
+                var vendasCardapio = await window.obterPedidosOnlineDaNuvem() || [];
+                concluidos = vendasCardapio.filter(v => v.status === 'concluido');
+            } catch(e) { console.warn(e); container.innerHTML = '<p style="color:red;text-align:center;">Erro ao buscar vendas do cardápio: ' + e.message + '</p>'; return; }
+
+            if (concluidos.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma venda online concluída.</p>';
+                totalGeralEl.innerText = '0.00';
+                return;
+            }
+            container.innerHTML = '';
+            concluidos.slice().reverse().forEach(function(vc) {
+                somaTotal += Number(vc.total || 0);
+                var itensStr = vc.itens ? vc.itens.map(i => i.quantidade + 'x ' + i.name).join(', ') : '';
+                var tipoAtendimento = vc.tipoEntrega && vc.tipoEntrega.includes('Entrega') ? '🛵 Delivery' : '🏪 Retirada';
+                container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink); margin-bottom: 4px;"><span>Cardápio Online (' + tipoAtendimento + ')</span><span>R$ ' + Number(vc.total).toFixed(2) + '</span></div><div style="font-size: 0.85rem; color: #333; margin-bottom: 2px;"><strong>Cliente:</strong> ' + (vc.cliente || 'Balcão') + '</div>' + (itensStr ? '<div style="font-size: 0.8rem; color: #555; margin-bottom: 4px;"><strong>Itens:</strong> ' + itensStr + '</div>' : '') + '<div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + vc.formaPagamento + '</span><span>' + vc.data + '</span></div></div>';
+            });
+
+        } else if (window.abaRelatorioAtual === 'encomendas') {
+            let encBalcao = [];
+            try {
+                const snapEnc = await window.getDocs(window.collection(window.db, "vendas_encomendas"));
+                snapEnc.forEach(d => encBalcao.push(d.data()));
+            } catch(e) { console.warn(e); container.innerHTML = '<p style="color:red;text-align:center;">Erro ao buscar encomendas de balcão: ' + e.message + '</p>'; return; }
+
+            let pedidosCardapio = [];
+            try {
+                if (typeof window.obterPedidosOnlineDaNuvem === 'function') {
+                    var todosPedidos = await window.obterPedidosOnlineDaNuvem() || [];
+                    pedidosCardapio = todosPedidos.filter(p => p.status === 'concluido' && p.itens && p.itens.some(i => i.isEncomenda === true));
+                }
+            } catch(e) { console.warn(e); container.innerHTML = '<p style="color:red;text-align:center;">Erro ao buscar encomendas do cardápio online: ' + e.message + '</p>'; return; }
+
+            if (encBalcao.length === 0 && pedidosCardapio.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">Nenhuma encomenda registrada.</p>';
+                totalGeralEl.innerText = '0.00';
+                return;
+            }
+
+            container.innerHTML = '';
+            encBalcao.reverse().forEach(function(enc) {
+                var valor = Number(enc.total || enc.preco || 0);
+                somaTotal += valor;
+                container.innerHTML += '<div style="background: #fafafa; border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--pink);"><span>🎂 ' + (enc.opcaoEscolhida || 'Encomenda') + '</span><span>R$ ' + valor.toFixed(2) + '</span></div><div style="font-size: 0.8rem; color: #555; margin: 4px 0;">Cliente: ' + (enc.nomeCliente || '') + ' (' + (enc.telefone || '') + ')</div><div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 4px;"><span>Retirada: ' + (enc.dataRetirada || '') + '</span><span>Status: Concluído</span></div></div>';
+            });
+
+            pedidosCardapio.forEach(function(ped) {
+                var valor = Number(ped.total || 0);
+                somaTotal += valor;
+                var itensStr = ped.itens.filter(i => i.isEncomenda).map(i => i.quantidade + 'x ' + i.name).join(', ');
+                container.innerHTML += '<div style="background: #f0f8ff; border: 1px solid #007bff; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;"><div style="display: flex; justify-content: space-between; font-weight: bold; color: #007bff; margin-bottom: 4px;"><span>🌐 Encomenda (Cardápio Online)</span><span>R$ ' + valor.toFixed(2) + '</span></div><div style="font-size: 0.85rem; color: #333; margin-bottom: 2px;"><strong>Cliente:</strong> ' + (ped.cliente || '') + '</div><div style="font-size: 0.8rem; color: #555; margin-bottom: 4px;"><strong>Itens:</strong> ' + itensStr + '</div><div style="font-size: 0.75rem; color: #888; display: flex; justify-content: space-between;"><span>Pagamento: ' + ped.formaPagamento + '</span><span>Data: ' + ped.data + '</span></div></div>';
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = '<p style="color: red; text-align: center;">Erro ao carregar dados.</p>';
+    }
+
+    totalGeralEl.innerText = somaTotal.toFixed(2);
+};
 
     </script>
     <!-- ASSINATURA GRAN FINALE - NOMAD SYSTEMS -->
